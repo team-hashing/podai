@@ -1,0 +1,14 @@
+*.wav
+*.mp3
+*__pycache__/
+__pycache__*
+.venv
+ollama.py
+voices/
+script.json
+*test*
+tts/data/*
+tts/podcasts/*
+
+# For test
+!tts/data/123/whales.json
