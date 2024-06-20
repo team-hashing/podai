@@ -6,7 +6,7 @@ __pycache__*
 ollama.py
 voices/
 script.json
-*test*
+
 tts/data/*
 tts/podcasts/*
 
