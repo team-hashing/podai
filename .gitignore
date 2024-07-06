@@ -12,3 +12,8 @@ tts/podcasts/*
 
 # For test
 !tts/data/123/whales.json
+
+# gemini
+gemini/*
+!gemini/app
+!gemini/src/
