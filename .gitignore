@@ -17,3 +17,4 @@ tts/podcasts/*
 gemini/*
 !gemini/app
 !gemini/src/
+!gemini/requirements.txt
