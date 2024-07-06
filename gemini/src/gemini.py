@@ -2,7 +2,7 @@ import argparse
 import vertexai
 from vertexai.generative_models import GenerativeModel
 # ModelContent
-from vertexai.generative_models._generative_models import Content, Part
+from vertexai.generative_models._generative_models import Content, Part, SafetySetting
 
 
 import json
@@ -24,22 +24,10 @@ generation_config = {
 }
 
 safety_settings = [
-    {
-        "category": "HARM_CATEGORY_HARASSMENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-    },
-    {
-        "category": "HARM_CATEGORY_HATE_SPEECH",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-    },
-    {
-        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-    },
-    {
-        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
-    },
+    SafetySetting("HARM_CATEGORY_HARASSMENT", "BLOCK_MEDIUM_AND_ABOVE"),
+    SafetySetting("HARM_CATEGORY_HATE_SPEECH", "BLOCK_MEDIUM_AND_ABOVE"),
+    SafetySetting("HARM_CATEGORY_SEXUALLY_EXPLICIT", "BLOCK_MEDIUM_AND_ABOVE"),
+    SafetySetting("HARM_CATEGORY_DANGEROUS_CONTENT", "BLOCK_MEDIUM_AND_ABOVE"),
 ]
 
 model = GenerativeModel(
@@ -73,8 +61,8 @@ def generate_script_part(chat_session, message):
     if response.text:
         try:
             # Parse the JSON response
-            aux = response.text.replace("```json", "").replace("```", "")
-            return json.loads(aux)
+            #aux = response.text.replace("```json", "").replace("```", "")
+            return json.loads(response.text)
         except json.JSONDecodeError:
             print("AAAA JSON FAIL: ", response.text)
             print("Failed to decode JSON response.")
@@ -113,6 +101,9 @@ def generate_detailed_section(chat_session, subject, section_title):
     for i in range(2):  # Adjust the range if needed
         segment_prompt = f"{section_prompt}\nSegment {i+1}:\nMale Host: (start discussing)\nFemale Host: (continue)\nMale Host: (add more details)"
         segment_content = generate_script_part(chat_session, segment_prompt)
+        if not segment_content:
+            print("Failed to generate segment content.")
+            return None
 
         if section_title not in detailed_content.keys():
             detailed_content.update(segment_content)
