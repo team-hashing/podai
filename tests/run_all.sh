@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Function to stop all background jobs
+stop_jobs() {
+    kill $(jobs -p)
+}
+
+# Catch SIGINT and stop all background jobs
+trap stop_jobs SIGINT
+
 # Navigate to the root directory
 cd "$(dirname "$0")/.."
 
@@ -21,5 +29,11 @@ bash scripts/run.sh
 # Run the Gemini API
 (
 cd gemini
+bash scripts/run.sh
+) &
+
+# Run the web app
+(
+cd web
 bash scripts/run.sh
 ) &
