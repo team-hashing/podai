@@ -28,12 +28,12 @@ async def read_audio(podcast: Podcast):
     generate_podcast(podcast)
 
     # Check if podcast exists
-    podcast_path = f"{data_path}/{podcast.user_id}/podcasts/{podcast.podcast_id}.wav"
+    podcast_path = f"{data_path}/{podcast.user_id}/audios/{podcast.podcast_id}.wav"
     if not os.path.exists(podcast_path):
-        logger.error(f"Podcast not found: {podcast}")
+        logger.error(f"Podcast not found: {podcast_path}")
         raise HTTPException(status_code=404, detail="Podcast not found")
 
-    return {"message": "Podcast generated successfully", "file_path": podcast_path}
+    return {"response_code": 200, "message": "Podcast generated successfully", "podcast": podcast}
 
 @app.get("/audio")
 def read_audio():

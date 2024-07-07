@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'podcast-card loading';
         card.innerHTML = `
             <div class="podcast-image-container">
-                <img src="/static/images/placeholder.jpg" alt="${podcastName} cover image" class="podcast-image">
+                <img src="/static/images/placeholder.png" alt="${podcastName} cover image" class="podcast-image">
                 <div class="podcast-overlay">
                     <button class="play-button" disabled>▶</button>
                 </div>

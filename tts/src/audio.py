@@ -46,11 +46,12 @@ def concatenate_audio_files(files: List[str], path: str) -> AudioSegment:
     :return: The concatenated AudioSegment.
     """
     audio_files = []
+    temp_audio_files_path = path + "temp/"
 
     for file in files:
         try:
             logger.debug(f"Loading file {file}")
-            audio = AudioSegment.from_wav(path + file)
+            audio = AudioSegment.from_wav(temp_audio_files_path + file)
             audio_files.append(audio)
             logger.info(f"Successfully loaded file {file}")
         except Exception as e:

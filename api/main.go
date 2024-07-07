@@ -108,6 +108,7 @@ func main() {
 	http.HandleFunc("/api/audio", getAudio)
 	http.HandleFunc("/api/generate_script", generateScriptHandler)
 	http.HandleFunc("/api/scripts", scriptsHandler)
+	
 
 
 	go func() {
@@ -244,6 +245,8 @@ func getAudio(w http.ResponseWriter, r *http.Request) {
 	} else {
 		logger.Error("Received non-OK response: %v", resp.Status)
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 type GenerateScriptRequest struct {
@@ -365,8 +368,13 @@ func generateScriptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("Script generated successfully")
+
+	// return code 200 and the script_id
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"podcast_id": script_id})
 }
 
+// Get all scripts of the given user_id
 func scriptsHandler(w http.ResponseWriter, r *http.Request) {
 	logger := NewColorLogger()
 	logger.Info("Getting scripts")
@@ -434,4 +442,10 @@ func scriptsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(scripts)
+}
+
+type GeneratePodcastRequest struct {
+	UserID        string `json:"user_id"`
+	PodcastSubject string `json:"subject"`
+	PodcastName   string `json:"podcast_name"`
 }
