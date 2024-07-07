@@ -96,9 +96,10 @@ def concatenate_audio(path: str = 'podcasts/', filename: str = 'podcast.wav') ->
     :param path: The directory to search for .wav files.
     :param filename: The name of the file to export.
     """
+    temp_audio_files_path = path + "temp/"
     try:
         logger.debug("Getting audio files")
-        files = get_audio_files(path)
+        files = get_audio_files(temp_audio_files_path)
         logger.info(f"Got {len(files)} audio files")
 
         logger.debug("Concatenating audio files")
@@ -110,7 +111,7 @@ def concatenate_audio(path: str = 'podcasts/', filename: str = 'podcast.wav') ->
         logger.info(f"Successfully exported audio to {filename}")
 
         logger.debug("Removing original audio files")
-        remove_files(files, path)
+        remove_files(files, temp_audio_files_path)
         logger.info("Successfully removed original audio files")
 
     except Exception as e:
@@ -146,8 +147,15 @@ def generate_audio(male_host: Dict[str, str], female_host: Dict[str, str], filen
     :param male_host: A dictionary where keys are sentence IDs and values are sentences spoken by the male host.
     :param female_host: A dictionary where keys are sentence IDs and values are sentences spoken by the female host.
     """
-    generate_audio_for_host(male_host, "male", path)
-    generate_audio_for_host(female_host, "female", path)
+    temp_audio_files_path = path + "temp/"
+    if not os.path.exists(temp_audio_files_path):
+        os.makedirs(temp_audio_files_path)
+    else:
+        for file in os.listdir(temp_audio_files_path):
+            os.remove(temp_audio_files_path + file)
+
+    generate_audio_for_host(male_host, "male", temp_audio_files_path)
+    generate_audio_for_host(female_host, "female", temp_audio_files_path)
     concatenate_audio(path, filename)
 
 
@@ -205,29 +213,46 @@ def generate_podcast(podcast: Podcast) -> None:
 
     :param filename: The name of the script file.
     """
-    filename = podcast.podcast_name + ".json"
-    script   = podcast.script
-    user_id  = podcast.user_id
+    data_path         = os.getenv("DATA_PATH", "/data")
+    scripts_directory = f"{data_path}/{podcast.user_id}/scripts/"
+    audios_directory  = f"{data_path}/{podcast.user_id}/audios/"
+    script_filename   = f"script_{podcast.podcast_id}.json"
+    audio_filename    = f"{podcast.podcast_id}.wav"
+    user_id           = podcast.user_id
+    podcast_id        = podcast.podcast_id
+
+
     try:
         start_time = time.time()
 
-        logger.debug(f"Loading script from {filename}")
-        script = load_script(user_id + "/" + filename)
-        logger.info(f"Successfully loaded script from {filename}")
+        # Load script
+        logger.debug(f"Loading script from {script_filename}")
+        script_path = f"{scripts_directory}/{script_filename}"
 
+        if not os.path.exists(script_path):
+            logger.error(f"Script not found: {script_path}")
+            return
+
+        with open(script_path, "r") as script_file:
+            script = json.load(script_file)
+        logger.info(f"Successfully loaded script {podcast.podcast_name}")
+
+        # Split script by host
         logger.debug("Splitting script by host")
+        logger.info(f"AAAAAAAAAAAAAAAAAAAAAAAAAAAA {script}")
         hosts = split_script_by_host(script)
         logger.info("Successfully split script by host")
 
         logger.debug("Generating podcast")
 
         # Create directory if it doesn't exist
-        os.makedirs('podcasts', exist_ok=True)
-        os.makedirs(f"podcasts/{user_id}", exist_ok=True)
+        if not os.path.exists(f"{data_path}/{user_id}/audios"):
+            os.makedirs(f"{data_path}/{user_id}/audios")
+
 
         # Generate audio
         logger.debug("Generating audio")
-        generate_audio(hosts["male"], hosts["female"], podcast.podcast_name + ".wav", f"podcasts/{user_id}/")
+        generate_audio(hosts["male"], hosts["female"], podcast_id + ".wav", f"{data_path}/{user_id}/audios/")
         logger.info("Successfully generated audio")
 
         end_time = time.time()

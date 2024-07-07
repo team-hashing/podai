@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pod AI - Your Podcast Hub</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/animations.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1 class="logo">Pod AI</h1>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#" class="nav-link">Home</a></li>
+                    <li><a href="#" class="nav-link">Discover</a></li>
+                    <li><a href="#" class="nav-link">Library</a></li>
+                </ul>
+            </nav>
+        </header>
+        <button id="generate-podcast-btn" class="generate-podcast-btn">Generate Podcast</button>
+        <aside id="generate-podcast-menu" class="generate-podcast-menu">
+            <button id="close-menu-btn" class="close-menu-btn">&times;</button>
+            <h2>Generate New Podcast</h2>
+            <form id="generate-podcast-form">
+                <input type="text" id="podcast-name" placeholder="Podcast Name" required>
+                <input type="text" id="podcast-subject" placeholder="Podcast Subject" required>
+                <button type="submit">Generate</button>
+            </form>
+        </aside>
+        <main class="main-content">
+            <section id="featured" class="featured-section">
+                <h2 class="section-title">Featured Podcasts</h2>
+                <div class="podcast-grid">
+                    {% for podcast in podcasts %}
+                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{{ podcast.image }}" alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="podcast-overlay">
+                                <button class="play-button">▶</button>
+                            </div>
+                        </div>
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+        <footer class="app-footer">
+            <p>&copy; 2024 PodAI.Team Hashing. All rights reserved.</p>
+        </footer>
+    </div>
+    <div id="audio-player" class="audio-player">
+        <div class="audio-info">
+            <img id="current-podcast-image" src="" alt="Current podcast">
+            <div class="audio-details">
+                <h3 id="current-podcast-title"></h3>
+                <p id="current-podcast-author"></p>
+            </div>
+        </div>
+        <audio id="audio-element" controls></audio>
+    </div>
+
+</body>
+</html>

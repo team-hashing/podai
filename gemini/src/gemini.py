@@ -17,9 +17,9 @@ vertexai.init(project=project_id, location="us-central1")
 
 generation_config = {
     "temperature": 0.7,
-    "top_p": 0.9,
-    "top_k": 40,
-    "max_output_tokens": 1024,
+    # "top_p": 0.9,
+    # "top_k": 40,
+    # "max_output_tokens": 1024,
     "response_mime_type": "application/json",
 }
 
@@ -45,9 +45,9 @@ model = GenerativeModel(
 # Separate model configuration for generating JSON
 json_generation_config = {
     "temperature": 0.7,
-    "top_p": 0.9,
-    "top_k": 40,
-    "max_output_tokens": 1024,
+    # "top_p": 0.9,
+    # "top_k": 40,
+    # "max_output_tokens": 1024,
     "response_mime_type": "application/json",
 }
 
@@ -58,26 +58,33 @@ json_model = GenerativeModel(
 )
 
 
-
 def generate_script_part(chat_session, message):
-    response = chat_session.send_message(message)
-    
-    # Check if response.text is not empty and is a valid JSON string
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            response = chat_session.send_message(message)
+            break
+        except Exception as e:
+            if attempt < max_attempts - 1:  # if it's not the last attempt
+                for i in range(30, 0, -1):
+                    print(f"Max uses per minute: Retrying in {i} seconds...", end='\r')
+                    time.sleep(1)
+                print()
+            else:
+                print("Error: Maximum number of attempts reached.")
+                return None
+    else:
+        print("No response received.")
+        return None
+
     if response.text:
         try:
-            # Parse the JSON response
-            #aux = response.text.replace("```json", "").replace("```", "")
             return json.loads(response.text)
         except json.JSONDecodeError:
             print("AAAA JSON FAIL: ", response.text)
             print("Failed to decode JSON response.")
             return None
-    else:
-        print("No response received.")
-        return None
 
-    
-    return response.text
 
 def generate_sections(subject):
     sections_prompt = f"""
@@ -114,13 +121,18 @@ def generate_detailed_section(chat_session, subject, section_title):
             detailed_content.update(segment_content)
         
         else:
-            detailed_content[section_title] += segment_content[section_title]
+            # TODO No me fio de que esto este bien
+            if isinstance(detailed_content[section_title], str):
+                # Convert string to list
+                detailed_content[section_title] = [detailed_content[section_title]]
+            detailed_content[section_title].extend(segment_content[section_title])
     
     return detailed_content
 
 def generate_podcast_script(subject):
 
     # Generate podcast structure
+    print("AAA Geneating sections...")
     sections_response = generate_sections(subject)
 
     # Parse the JSON response
@@ -136,13 +148,15 @@ def generate_podcast_script(subject):
 
     # Step 2: Generate the Introduction
     intro_prompt = f'Based on the subject "{subject}", write a detailed and engaging introduction for a podcast. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural. Here is the outline for reference:\n{json.dumps(sections)}\n\nMale Host: (start the introduction)\nFemale Host: (continue the introduction)'
+    print("AAA Generating script...")
     introduction = generate_script_part(chat_session, intro_prompt)
 
     # Step 3: Generate the Detailed Discussions
     full_script = {}
     full_script = introduction
 
-    for section_title in sections:
+    for i, section_title in enumerate(sections):
+        print(f"AAA Generating section {i}...")
         section_content = generate_detailed_section(chat_session, subject, section_title)
         if section_content is None:
             print("Failed to generate detailed section.")
@@ -152,6 +166,7 @@ def generate_podcast_script(subject):
 
     # Step 4: Generate the Conclusion
     conclusion_prompt = f'Based on the subject "{subject}", write a conclusion for the podcast. Summarize the key points discussed and provide final thoughts or actionable insights. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural\n\nOutline: {json.dumps(sections)}\n\nMale Host: (start the conclusion)\nFemale Host: (continue the conclusion)\nMale Host: (finish the conclusion)'
+    print("AAA Generating conclusion...")
     conclusion = generate_script_part(chat_session, conclusion_prompt)
 
     full_script.update(conclusion)

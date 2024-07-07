@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class Podcast(BaseModel):
     user_id: str
     podcast_name: str
-    script: dict
+    podcast_id: str

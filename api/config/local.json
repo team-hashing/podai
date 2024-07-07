@@ -1,5 +1,6 @@
 {
     "ip": "localhost",
-    "port": "8001",
-    "api_port": "8000"
+    "tts_port": "8001",
+    "api_port": "8000",
+    "gemini_port": "8002"
 }

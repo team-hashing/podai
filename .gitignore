@@ -14,7 +14,10 @@ tts/podcasts/*
 !tts/data/123/whales.json
 
 # gemini
-gemini/*
+gemini/.venv
 !gemini/app
 !gemini/src/
 !gemini/requirements.txt
+
+# Data
+data/
