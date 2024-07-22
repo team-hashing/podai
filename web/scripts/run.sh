@@ -29,4 +29,4 @@ pip install -r ../requirements.txt
 # Run the FastAPI application with uvicorn
 cd ..
 pwd
-uvicorn --port 8003 app:app --reload
+uvicorn --host 0.0.0.0 --port 8003 app:app --reload
