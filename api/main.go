@@ -22,9 +22,9 @@ var Env string
 
 type ColorLogger struct {
 	debugLogger *log.Logger
-    infoLogger  *log.Logger
-    warnLogger  *log.Logger
-    errorLogger *log.Logger
+	infoLogger  *log.Logger
+	warnLogger  *log.Logger
+	errorLogger *log.Logger
 }
 
 func NewColorLogger() *ColorLogger {
@@ -41,19 +41,18 @@ func (l *ColorLogger) Debug(format string, v ...interface{}) {
 }
 
 func (l *ColorLogger) Info(format string, v ...interface{}) {
-    l.infoLogger.Output(2, fmt.Sprintf(format, v...))
+	l.infoLogger.Output(2, fmt.Sprintf(format, v...))
 }
 
 func (l *ColorLogger) Warn(format string, v ...interface{}) {
-    l.warnLogger.Output(2, fmt.Sprintf(format, v...))
+	l.warnLogger.Output(2, fmt.Sprintf(format, v...))
 }
 
 func (l *ColorLogger) Error(format string, v ...interface{}) {
-    l.errorLogger.Output(2, fmt.Sprintf(format, v...))
+	l.errorLogger.Output(2, fmt.Sprintf(format, v...))
 }
 
 //////////////////////
-
 
 type Item struct {
 	ID    string  `json:"id"`
@@ -66,50 +65,47 @@ var (
 	mux   = sync.Mutex{}
 )
 
-
 type Config struct {
-    TTS_IP   string `json:"ip"`
-    TTS_Port string `json:"tts_port"`
-	API_Port string `json:"api_port"`
+	TTS_IP      string `json:"ip"`
+	TTS_Port    string `json:"tts_port"`
+	API_Port    string `json:"api_port"`
 	GEMINI_Port string `json:"gemini_port"`
 }
 
 func loadConfig() (*Config, error) {
-    var config Config
+	var config Config
 
-    file, err := os.Open(fmt.Sprintf("config/%s.json", Env))
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+	file, err := os.Open(fmt.Sprintf("config/%s.json", Env))
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-    decoder := json.NewDecoder(file)
-    if err := decoder.Decode(&config); err != nil {
-        return nil, err
-    }
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&config); err != nil {
+		return nil, err
+	}
 
-    return &config, nil
+	return &config, nil
 }
 
 func main() {
 	logger := NewColorLogger()
-    logger.Info("Logger initialized")
+	logger.Info("Logger initialized")
 
-    flag.StringVar(&Env, "env", "dev", "environment")
-    flag.Parse()
+	flag.StringVar(&Env, "env", "dev", "environment")
+	flag.Parse()
 
-
-    config, err := loadConfig()
-    if err != nil {
-        log.Fatalf("Failed to load configuration: %v", err)
-    }
+	config, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
 	http.HandleFunc("/api/items", itemsHandler)
 	http.HandleFunc("/api/audio", getAudio)
 	http.HandleFunc("/api/generate_script", generateScriptHandler)
 	http.HandleFunc("/api/scripts", scriptsHandler)
-	
-
+	http.HandleFunc("/api/generate_podcast", generatePodcastHandler)
 
 	go func() {
 		if err := http.ListenAndServe(":"+config.API_Port, nil); err != nil {
@@ -117,7 +113,6 @@ func main() {
 		}
 	}()
 	logger.Info("Server started on port " + config.API_Port)
-
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -156,10 +151,9 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(item)
 }
 
-
 type RequestBody struct {
-	UserID     string `json:"user_id"`
-	PodcastId  string `json:"podcast_id"`
+	UserID    string `json:"user_id"`
+	PodcastId string `json:"podcast_id"`
 }
 
 // Get audio from generated script
@@ -286,7 +280,7 @@ func generateScriptHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Define the payload
 	payload := map[string]string{
-		"user_id":  body.UserID,
+		"user_id": body.UserID,
 		"subject": body.Subject,
 	}
 
@@ -445,7 +439,150 @@ func scriptsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type GeneratePodcastRequest struct {
-	UserID        string `json:"user_id"`
+	UserID         string `json:"user_id"`
 	PodcastSubject string `json:"subject"`
-	PodcastName   string `json:"podcast_name"`
+	PodcastName    string `json:"podcast_name"`
+}
+
+func generatePodcastHandler(w http.ResponseWriter, r *http.Request) {
+	logger := NewColorLogger()
+	logger.Info("Generating podcast")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var body GeneratePodcastRequest
+
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		logger.Error("Failed to decode request body: %v", err)
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	if body.PodcastName == "" {
+		body.PodcastName = body.PodcastSubject
+	}
+
+	config, err := loadConfig()
+	if err != nil {
+		logger.Error("Failed to load configuration: %v", err)
+		return
+	}
+
+	// Generate script
+	scriptPayload := map[string]string{
+		"user_id": body.UserID,
+		"subject": body.PodcastSubject,
+	}
+
+	scriptPayloadBytes, err := json.Marshal(scriptPayload)
+	if err != nil {
+		logger.Error("Unable to marshal JSON for script generation: %v", err)
+		return
+	}
+
+	scriptReader := bytes.NewReader(scriptPayloadBytes)
+
+	scriptReq, err := http.NewRequest("POST", "http://"+config.TTS_IP+":"+config.GEMINI_Port+"/generate_script", scriptReader)
+	if err != nil {
+		logger.Error("Unable to create request for script generation: %v", err)
+		return
+	}
+
+	scriptReq.Header.Set("Content-Type", "application/json")
+
+	scriptResp, err := http.DefaultClient.Do(scriptReq)
+	if err != nil {
+		logger.Error("Unable to generate script: %v", err)
+		return
+	}
+	defer scriptResp.Body.Close()
+
+	var scriptRespBody map[string]interface{}
+	err = json.NewDecoder(scriptResp.Body).Decode(&scriptRespBody)
+	if err != nil {
+		logger.Error("Unable to decode script response body: %v", err)
+		return
+	}
+	scriptID, ok := scriptRespBody["script_id"].(string)
+	if !ok {
+		logger.Error("script_id not found in response")
+		return
+	}
+
+	// Save podcast name
+	data_path := os.Getenv("DATA_PATH")
+	if data_path == "" {
+		logger.Error("DATA_PATH environment variable is not set")
+		return
+	}
+
+	scriptPath := fmt.Sprintf("%s/names.json", data_path)
+	file, err := os.OpenFile(scriptPath, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		logger.Error("Unable to open file: %v", err)
+		return
+	}
+	defer file.Close()
+
+	var existingData map[string]string
+	err = json.NewDecoder(file).Decode(&existingData)
+	if err != nil && err != io.EOF {
+		logger.Error("Unable to decode existing data: %v", err)
+		return
+	}
+
+	existingData[scriptID] = body.PodcastName
+
+	file.Seek(0, 0)
+	file.Truncate(0)
+	err = json.NewEncoder(file).Encode(existingData)
+	if err != nil {
+		logger.Error("Unable to write to file: %v", err)
+		return
+	}
+
+	logger.Info("Script generated successfully")
+
+	// Generate audio
+	audioPayload := map[string]interface{}{
+		"user_id":      body.UserID,
+		"podcast_name": body.PodcastName,
+		"podcast_id":   scriptID,
+	}
+
+	audioPayloadBytes, err := json.Marshal(audioPayload)
+	if err != nil {
+		logger.Error("Unable to marshal JSON for audio generation: %v", err)
+		return
+	}
+
+	audioReader := bytes.NewReader(audioPayloadBytes)
+
+	audioReq, err := http.NewRequest("POST", "http://"+config.TTS_IP+":"+config.TTS_Port+"/api/audio", audioReader)
+	if err != nil {
+		logger.Error("Unable to create request for audio generation: %v", err)
+		return
+	}
+
+	audioReq.Header.Set("Content-Type", "application/json")
+
+	audioResp, err := http.DefaultClient.Do(audioReq)
+	if err != nil {
+		logger.Error("Unable to generate audio: %v", err)
+		return
+	}
+	defer audioResp.Body.Close()
+
+	if audioResp.StatusCode == http.StatusOK {
+		logger.Info("Audio generated successfully")
+	} else {
+		logger.Error("Received non-OK response from audio generation: %v", audioResp.Status)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"podcast_id": scriptID})
 }

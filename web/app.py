@@ -70,52 +70,34 @@ class PodcastGenerationRequest(BaseModel):
 
 @app.post("/generate-podcast")
 async def generate_podcast(request: PodcastGenerationRequest):
-    # Define the payload for the script generation API
-        # Define the payload for the audio generation API
-    script_payload = {
+    # Define the payload for the podcast generation API
+    payload = {
         "user_id": "user1",
         "subject": request.subject,
         "podcast_name": request.name
     }
 
+    # Set a 90-minute timeout
+    timeout = Timeout(90.0 * 60)
 
-
-    # Send a POST request to the script generation API
-    timeout = Timeout(10.0 * 60)  # 10 minutes
+    # Send a POST request to the podcast generation API
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post('http://localhost:8000/api/generate_script', json=script_payload)
+        response = await client.post('http://localhost:8000/api/generate_podcast', json=payload)
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
-        script_data = response.json()
-    
-    podcast_id = script_data['podcast_id']
-
-    audio_payload = {
-        "user_id": "user1",
-        "podcast_id": podcast_id
-    }
-
-
-
-    # Set an 80-minute timeout
-    timeout = Timeout(80.0 * 60)
-
-    # Send a POST request to the audio generation API
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post('http://localhost:8000/api/audio', json=audio_payload)
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-        audio_data = response.json()
+        podcast_data = response.json()
 
     # Create a new Podcast object
     new_podcast = Podcast(
-        id=audio_data['podcast_id'],
+        id=podcast_data['podcast_id'],
         name=request.name,
         image=f'https://picsum.photos/seed/{request.name}/200'
     )
 
+    # Get the updated list of podcasts
     podcasts = await get_podcasts()
     podcasts.append(new_podcast)
+
     return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
 
 async def get_podcasts():
