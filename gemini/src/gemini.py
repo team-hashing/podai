@@ -37,7 +37,7 @@ safety_settings = [
 
 model = GenerativeModel(
     model_name="gemini-1.5-flash-001",
-    # safety_settings=safety_settings,
+    safety_settings=safety_settings,
     generation_config=generation_config,
 
 )
@@ -53,7 +53,7 @@ json_generation_config = {
 
 json_model = GenerativeModel(
     model_name="gemini-1.5-flash-001",
-    # safety_settings=safety_settings,
+    safety_settings=safety_settings,
     generation_config=json_generation_config,
 )
 
@@ -81,7 +81,7 @@ def generate_script_part(chat_session, message):
         try:
             return json.loads(response.text)
         except json.JSONDecodeError:
-            print("AAAA JSON FAIL: ", response.text)
+            print("JSON FAIL: ", response.text)
             print("Failed to decode JSON response.")
             return None
 
@@ -109,6 +109,7 @@ def generate_detailed_section(chat_session, subject, section_title):
     Alternate between Male Host and Female Host. Provide multiple viewpoints, subpoints, and examples. Be simple with your sentences, be aware this will be spoken and it has to sound natural.
     """
     detailed_content = {}
+
     # Generate content in smaller segments
     for i in range(2):  # Adjust the range if needed
         segment_prompt = f"{section_prompt}\nSegment {i+1}:\nMale Host: (start discussing)\nFemale Host: (continue)\nMale Host: (add more details)"
@@ -125,6 +126,14 @@ def generate_detailed_section(chat_session, subject, section_title):
             if isinstance(detailed_content[section_title], str):
                 # Convert string to list
                 detailed_content[section_title] = [detailed_content[section_title]]
+            elif isinstance(detailed_content[section_title], dict):
+                # Convert dict to list of dicts
+                detailed_content[section_title] = [detailed_content[section_title]]
+            
+            if isinstance(segment_content[section_title], dict):
+                # Convert dict to list of dicts
+                segment_content[section_title] = [segment_content[section_title]]
+            
             detailed_content[section_title].extend(segment_content[section_title])
     
     return detailed_content
@@ -132,7 +141,7 @@ def generate_detailed_section(chat_session, subject, section_title):
 def generate_podcast_script(subject):
 
     # Generate podcast structure
-    print("AAA Geneating sections...")
+    print("Geneating sections...")
     sections_response = generate_sections(subject)
 
     # Parse the JSON response
@@ -148,7 +157,7 @@ def generate_podcast_script(subject):
 
     # Step 2: Generate the Introduction
     intro_prompt = f'Based on the subject "{subject}", write a detailed and engaging introduction for a podcast. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural. Here is the outline for reference:\n{json.dumps(sections)}\n\nMale Host: (start the introduction)\nFemale Host: (continue the introduction)'
-    print("AAA Generating script...")
+    print("Generating script...")
     introduction = generate_script_part(chat_session, intro_prompt)
 
     # Step 3: Generate the Detailed Discussions
@@ -156,17 +165,20 @@ def generate_podcast_script(subject):
     full_script = introduction
 
     for i, section_title in enumerate(sections):
-        print(f"AAA Generating section {i}...")
+        print(f"Generating section {i}...")
         section_content = generate_detailed_section(chat_session, subject, section_title)
         if section_content is None:
             print("Failed to generate detailed section.")
             return None
         else:
-            full_script.update(section_content)
+            if full_script is None: # TODO Esto no deberia ser nunca None
+                full_script = section_content
+            else:
+                full_script.update(section_content)
 
     # Step 4: Generate the Conclusion
     conclusion_prompt = f'Based on the subject "{subject}", write a conclusion for the podcast. Summarize the key points discussed and provide final thoughts or actionable insights. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural\n\nOutline: {json.dumps(sections)}\n\nMale Host: (start the conclusion)\nFemale Host: (continue the conclusion)\nMale Host: (finish the conclusion)'
-    print("AAA Generating conclusion...")
+    print("Generating conclusion...")
     conclusion = generate_script_part(chat_session, conclusion_prompt)
 
     full_script.update(conclusion)

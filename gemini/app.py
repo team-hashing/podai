@@ -58,10 +58,37 @@ def standardize_script_format(script):
             # Get the standard speaker name
             standard_speaker = speaker_mapping.get(non_standard_speaker, "unknown_speaker")
 
-            # Replace the non-standard speaker name with the standard speaker name
-            line[standard_speaker] = line.pop(non_standard_speaker, "")
+            # Check if the line has the format {speaker: "", text: {text}}
+            if "text" in line and isinstance(line["text"], dict):
+                text_content = line.pop("text")["text"]
+                line[standard_speaker] = text_content
+            else:
+                # Replace the non-standard speaker name with the standard speaker name
+                line[standard_speaker] = line.pop(non_standard_speaker, "")
+    
+    script = transform_json(script)
 
     return script
+
+
+def transform_json(input_json):
+    transformed = {}
+    
+    for section, content in input_json.items():
+        transformed[section] = []
+        for item in content:
+            new_item = {}
+            if 'text' in item:
+                if 'male_host' in item:
+                    new_item['male_host'] = item['text']
+                elif 'female_host' in item:
+                    new_item['female_host'] = item['text']
+            else:
+                new_item = {k: v for k, v in item.items() if v}  # Keep non-empty fields
+            if new_item:
+                transformed[section].append(new_item)
+    
+    return transformed
 
 if __name__ == "__main__":
     try:

@@ -240,7 +240,7 @@ def generate_podcast(podcast: Podcast) -> None:
 
         # Split script by host
         logger.debug("Splitting script by host")
-        logger.info(f"AAAAAAAAAAAAAAAAAAAAAAAAAAAA {script}")
+        # logger.info(f"AAAAAAAAAAAAAAAAAAAAAAAAAAAA {script}")
         hosts = split_script_by_host(script)
         logger.info("Successfully split script by host")
 
