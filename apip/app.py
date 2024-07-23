@@ -268,7 +268,7 @@ async def generate_podcast(body: GeneratePodcastRequest):
     script_path = f"{data_path}/names.json"
     try:
         # Open the file in read+write mode, create if it doesn't exist
-        with open(script_path, "w+") as f:
+        with open(script_path, "a+") as f:
             f.seek(0)
             try:
                 existing_data = json.load(f)
@@ -277,9 +277,12 @@ async def generate_podcast(body: GeneratePodcastRequest):
                 existing_data = {}
 
             existing_data[script_id] = body.podcast_name
+            
+            # Rewriting the file from the beginning
             f.seek(0)
             json.dump(existing_data, f)
             f.truncate()
+            
 
     except Exception as e:
         logger.error(f"Unable to write to file: {e}")
