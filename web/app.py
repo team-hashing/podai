@@ -19,7 +19,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 DATA_PATH = os.getenv('DATA_PATH')
-API_URL = os.getenv('API_PATH')
+API_URL = os.getenv('API_URL')
 
 
 class Podcast(BaseModel):
@@ -102,6 +102,7 @@ async def generate_podcast(request: PodcastGenerationRequest):
     return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
 
 async def get_podcasts():
+    return []
     # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
         response = await client.post(f'{API_URL}/api/scripts', json={"user_id": "user1"})

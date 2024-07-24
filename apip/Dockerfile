@@ -6,6 +6,9 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create the necessary directory
+# RUN mkdir -p /data/user1/scripts/
+
 COPY . .
 
 EXPOSE 8000

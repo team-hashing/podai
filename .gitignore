@@ -18,6 +18,7 @@ gemini/.venv
 !gemini/app
 !gemini/src/
 !gemini/requirements.txt
+google-key.json
 
 # Data
 data/

@@ -41,15 +41,25 @@ class Config(BaseModel):
     TTS_IP: str
     TTS_Port: str
     API_Port: str
+    GEMINI_IP: str
     GEMINI_Port: str
 
 def load_config() -> Config:
-    with open(f"config/{Env}.json") as f:
-        return Config(**json.load(f))
+    # with open(f"config/{Env}.json") as f:
+    #     return Config(**json.load(f))
+    config = Config(
+        TTS_IP=os.getenv("TTS_IP"), 
+        TTS_Port=os.getenv("TTS_PORT"), 
+        API_Port=os.getenv("API_PORT"), 
+        GEMINI_IP=os.getenv("GEMINI_IP"), 
+        GEMINI_Port=os.getenv("GEMINI_PORT")
+    )
 
-# config = load_config()
+    return config
+
+config = load_config()
 # TODO Arreglar esto
-config = Config(TTS_IP="0.0.0.0", TTS_Port="8001", API_Port="8000", GEMINI_Port="8002")
+# config = Config(TTS_IP="0.0.0.0", TTS_Port="8001", API_Port="8000", GEMINI_Port="8002")
 
 # Models
 class Item(BaseModel):
@@ -160,7 +170,7 @@ async def generate_script(body: GenerateScriptRequest):
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"http://{config.TTS_IP}:{config.GEMINI_Port}/generate_script", json=payload)
+        response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=payload)
 
     if response.status_code != 200:
         logger.error(f"Unable to generate script: {response.status_code}")
@@ -242,10 +252,12 @@ async def generate_podcast(body: GeneratePodcastRequest):
 
     async with httpx.AsyncClient(timeout=600.0) as client:  # Set timeout to 600 seconds (10 minutes)
         try:
-            script_response = await client.post(f"http://{config.TTS_IP}:{config.GEMINI_Port}/generate_script", json=script_payload)
+            script_response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=script_payload)
+
         except httpx.TimeoutException:
             logger.error("The request to the TTS service timed out")
             raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
+        
         except httpx.RequestError as exc:
             logger.error(f"An error occurred while requesting the script: {exc}")
             raise HTTPException(status_code=500, detail="Error communicating with the TTS service")
