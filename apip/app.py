@@ -266,24 +266,24 @@ async def generate_podcast(body: GeneratePodcastRequest):
         raise HTTPException(status_code=500, detail="DATA_PATH not set")
 
     script_path = f"{data_path}/names.json"
+    if not os.path.exists(script_path):
+        with open(script_path, "w") as f:
+            f.write("{}")
+    
+    # Read file and get data
+    existing_data = {}
     try:
-        # Open the file in read+write mode, create if it doesn't exist
-        with open(script_path, "a+") as f:
-            f.seek(0)
-            try:
-                existing_data = json.load(f)
-            except json.JSONDecodeError:
-                # If the file is empty or contains invalid JSON, initialize with an empty dict
-                existing_data = {}
-
-            existing_data[script_id] = body.podcast_name
-            
-            # Rewriting the file from the beginning
-            f.seek(0)
+        with open(script_path, "r") as f:
+            existing_data = json.load(f)
+    except Exception as e:
+        logger.error(f"Unable to read file: {e}")
+        raise HTTPException(status_code=500, detail="Error reading script file")
+    
+    # Add new data
+    existing_data[script_id] = body.podcast_name
+    try:
+        with open(script_path, "w") as f:
             json.dump(existing_data, f)
-            f.truncate()
-            
-
     except Exception as e:
         logger.error(f"Unable to write to file: {e}")
         raise HTTPException(status_code=500, detail="Error saving script")
