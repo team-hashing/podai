@@ -19,6 +19,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 DATA_PATH = os.getenv('DATA_PATH')
+API_URL = os.getenv('API_PATH')
 
 
 class Podcast(BaseModel):
@@ -31,7 +32,7 @@ class Podcast(BaseModel):
 async def root(request: Request):
     # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
-        response = await client.post('http://localhost:8000/api/scripts', json={"user_id": "user1"})
+        response = await client.post('{API_URL}/api/scripts', json={"user_id": "user1"})
         response.raise_for_status()
         podcasts_data = response.json()
 
@@ -82,7 +83,7 @@ async def generate_podcast(request: PodcastGenerationRequest):
 
     # Send a POST request to the podcast generation API
     async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post('http://localhost:8000/api/generate_podcast', json=payload)
+        response = await client.post('{API_URL}/api/generate_podcast', json=payload)
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.text)
         podcast_data = response.json()
@@ -103,7 +104,7 @@ async def generate_podcast(request: PodcastGenerationRequest):
 async def get_podcasts():
     # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
-        response = await client.post('http://localhost:8000/api/scripts', json={"user_id": "user1"})
+        response = await client.post('{API_URL}/api/scripts', json={"user_id": "user1"})
         response.raise_for_status()
         podcasts_data = response.json()
 
@@ -119,7 +120,7 @@ async def generate_podcast(request: PodcastGenerationRequest):
 
     # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
-        response = await client.post('http://localhost:8000/api/scripts', json={"user_id": "user1"})
+        response = await client.post('{API_URL}/api/scripts', json={"user_id": "user1"})
         response.raise_for_status()
         podcasts_data = response.json()
 
