@@ -1,119 +1,107 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import os
-import json
-from pathlib import Path
-from src.gemini import generate_podcast_script
-import uvicorn
+import logging
 from uuid import uuid4
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
+import uvicorn
+from fastapi.responses import JSONResponse
+
+from src.gemini import PodcastGenerator
+from src.storage import FirebaseStorage
+from src.script_processor import standardize_script_format
+from src.image_generation import generate_image
+
+# Configuration
+class Settings(BaseSettings):
+    app_name: str = "Podcast Script Generator"
+    debug: bool = False
 
 
-app = FastAPI()
+    class Config:
+        env_file = ".env"
 
+settings = Settings()
+
+# Logging setup
+logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Models
 class PodcastRequest(BaseModel):
-    subject: str
-    user_id: str
+    subject: str = Field(..., min_length=3, max_length=200)
+    user_id: str = Field(..., min_length=1)
 
-@app.post("/generate_script")
-async def generate_script(request: PodcastRequest):
-    script = generate_podcast_script(request.subject)
-    if script is None:
-        raise HTTPException(status_code=500, detail="Script generation failed")
+class ScriptResponse(BaseModel):
+    message: str
+    podcast_id: str
 
-    data_path = os.getenv("DATA_PATH", "/data")
-    directory = f"{data_path}/{request.user_id}/scripts"
-    Path(directory).mkdir(parents=True, exist_ok=True)
+# App initialization
+app = FastAPI(title=settings.app_name)
 
-    # Generate a unique script_id using uuid
-    script_id = str(uuid4())
-    filename = f"script_{script_id}"
-    script = standardize_script_format(script)
+# Exception handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    logger.error(f"HTTP error occurred: {exc.detail}")
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
 
-    with open(f"{directory}/{filename}.json", "w") as script_file:
-        script_file.write(json.dumps(script))
-
-    return {"message": "Script generated successfully", "file_path": f"{directory}/{filename}.json", "script_id": script_id}
-
-def standardize_script_format(script):
-    # Define a mapping from non-standard speaker names to standard speaker names
-    speaker_mapping = {
-        "Male Host": "male_host",
-        "Female Host": "female_host",
-        "male host": "male_host",
-        "female host": "female_host",
-        "Male_Host": "male_host",
-        "Female_Host": "female_host",
-        "male_host": "male_host",
-        "female_host": "female_host",
-    }
-
-    # Iterate over the script
-    for section, lines in script.items():
-        for line in lines:
-            # Get the non-standard speaker name
-            non_standard_speaker = line.pop("speaker", None)
-            if non_standard_speaker is None:
-                continue
-
-            # Get the standard speaker name
-            standard_speaker = speaker_mapping.get(non_standard_speaker, "unknown_speaker")
-
-            # Check if the line has the format {speaker: "", text: {text}}
-            if "text" in line and isinstance(line["text"], dict):
-                text_content = line["text"].pop("text")
-                line[standard_speaker] = text_content
-            else:
-                # Replace the non-standard speaker name with the standard speaker name
-                line[standard_speaker] = line.pop(non_standard_speaker, "")
-    
-    script = transform_json(script)
-    script = fix_host_names(script)
-
-    return script
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.exception("An unexpected error occurred")
+    return JSONResponse(status_code=500, content={"error": "An unexpected error occurred"})
 
 
-def fix_host_names(script):
-    speaker_mapping = {
-        "Male Host": "male_host",
-        "Female Host": "female_host",
-        "male host": "male_host",
-        "female host": "female_host",
-        "Male_Host": "male_host",
-        "Female_Host": "female_host",
-        "male_host": "male_host",
-        "female_host": "female_host",
-    }
+# Routes
+@app.post("/generate_script", response_model=ScriptResponse)
+async def generate_script(
+    request: PodcastRequest
+):
+    firebase_storage = FirebaseStorage()
+    logger.info(f"Generating script for subject: {request.subject}")
+    try:
+        # Generate podcast script
+        pg = PodcastGenerator()
+        script = await pg.generate_podcast_script(request.subject)
+        if script is None:
+            raise ValueError("Script generation failed")
 
-    for section in script.values():
-        for item in section:
-            if 'speaker' in item:
-                speaker = item['speaker']
-                if speaker in speaker_mapping:
-                    item[speaker_mapping[speaker]] = item.pop('text')
-    
-    return script
+        # Generate script ID
+        podcast_id = str(uuid4())
 
-def transform_json(input_json):
-    transformed = {}
-    
-    for section, content in input_json.items():
-        transformed[section] = []
-        for item in content:
-            new_item = {}
-            if 'text' in item:
-                if 'male_host' in item:
-                    new_item['male_host'] = item['text']
-                elif 'female_host' in item:
-                    new_item['female_host'] = item['text']
-            else:
-                new_item = {k: v for k, v in item.items() if v}  # Keep non-empty fields
-            if new_item:
-                transformed[section].append(new_item)
-    
-    return transformed
+        # Standardize script format
+        standardized_script = standardize_script_format(script)
+
+        # Save script to Firebase Storage
+        await firebase_storage.save_podcast(request.user_id, podcast_id, standardized_script)
+
+        # Generate image
+        image_data = generate_image(request.subject)
+        await firebase_storage.save_image(request.user_id, podcast_id, image_data)
+
+        logger.info(f"Script generated successfully. ID: {podcast_id}")
+        return ScriptResponse(message="Script generated successfully", podcast_id=podcast_id)
+
+    # Error handling
+    except ValueError as ve:
+        logger.error(f"Script generation failed: {str(ve)}")
+        raise HTTPException(status_code=500, detail=str(ve))
+
+    except Exception as e:
+        logger.exception("An unexpected error occurred during script generation")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred during script generation")
+
+
+# Lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting up the application")
+    # You can add any startup tasks here, like initializing database connections
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down the application")
+    # You can add any cleanup tasks here
+
 
 if __name__ == "__main__":
-    try:
-        uvicorn.run(app, host="0.0.0.0", port=8002)
-    except KeyboardInterrupt:
-        pass
+    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=settings.debug)

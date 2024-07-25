@@ -4,6 +4,8 @@ services:
       context: ./apip
     volumes:
       - ./data:/data
+      - ./firebase-key.json:/firebase.json
+
     ports:
       - "8000:8000"
     environment:
@@ -13,16 +15,22 @@ services:
       - GEMINI_IP=gemini
       - GEMINI_PORT=8002
       - API_PORT=8000
+      - FIREBASE_KEY=/firebase.json
+      - FIREBASE_STORAGE_BUCKET=podai-425012.appspot.com
 
   tts:
     build:
       context: ./tts
     volumes:
       - ./data:/data
+      - ./firebase-key.json:/firebase.json
     ports:
       - "8001:8001"
     environment:
       - DATA_PATH=/data
+      - FIREBASE_KEY=/firebase.json
+      - FIREBASE_STORAGE_BUCKET=podai-425012.appspot.com
+
 
   gemini:
     build:
@@ -30,11 +38,15 @@ services:
     volumes:
       - ./data:/data
       - ./google-key.json:/credentials.json
+      - ./firebase-key.json:/firebase.json
     ports:
       - "8002:8002"
     environment:
       - DATA_PATH=/data
       - GOOGLE_APPLICATION_CREDENTIALS=/credentials.json
+      - FIREBASE_KEY=/firebase.json
+      - FIREBASE_STORAGE_BUCKET=podai-425012.appspot.com
+
 
   web:
     build:

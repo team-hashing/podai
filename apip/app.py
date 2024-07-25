@@ -1,12 +1,15 @@
+from io import BytesIO
 import os
 import json
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Dict, List
 import logging
 from colorama import Fore, Style
+from src.storage import firebase_storage
 
 app = FastAPI()
 
@@ -71,6 +74,9 @@ class RequestBody(BaseModel):
     user_id: str
     podcast_id: str
 
+class GetPocastsRequest(BaseModel):
+    user_id: str
+
 class GenerateScriptRequest(BaseModel):
     user_id: str
     subject: str
@@ -93,149 +99,47 @@ async def create_item(item: Item):
     items.append(item)
     return item
 
-@app.post("/api/audio")
-async def get_audio(body: RequestBody):
-    """
-    Endpoint to get audio for a given podcast.
-    
-    Args:
-        body (RequestBody): The request body containing user_id and podcast_id.
-    
-    Returns:
-        JSONResponse: A response indicating success or failure.
-    """
-    logger.info("API called with user_id: %s and podcast_id: %s", body.user_id, body.podcast_id)
-
-    # Get the data path from environment variables
-    data_path = os.getenv("DATA_PATH")
-    if not data_path:
-        logger.error("DATA_PATH environment variable not set")
-        raise HTTPException(status_code=500, detail="Server configuration error")
-
-    # Load names from the JSON file
-    try:
-        with open(f"{data_path}/names.json") as f:
-            names = json.load(f)
-    except FileNotFoundError:
-        logger.error(f"names.json file not found in {data_path}")
-        raise HTTPException(status_code=500, detail="Server configuration error")
-    except json.JSONDecodeError:
-        logger.error("Error decoding names.json")
-        raise HTTPException(status_code=500, detail="Server configuration error")
-
-    # Get the podcast name from the names dictionary
-    podcast_name = names.get(body.podcast_id)
-    if not podcast_name:
-        logger.error(f"Name not found for podcast ID: {body.podcast_id}")
-        raise HTTPException(status_code=404, detail="Podcast not found")
-
-    # Prepare the payload for the TTS service
-    payload = {
-        "user_id": body.user_id,
-        "podcast_name": podcast_name,
-        "podcast_id": body.podcast_id,
-    }
-
-    # Make an asynchronous request to the TTS service
-    try:
-        async with httpx.AsyncClient(timeout=600.0) as client:  # Set timeout to 600 seconds (10 minutes)
-            response = await client.post(f"http://{config.TTS_IP}:{config.TTS_Port}/api/audio", json=payload)
-    except httpx.TimeoutException:
-        logger.error("The request to the TTS service timed out")
-        raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
-    except httpx.RequestError as exc:
-        logger.error(f"An error occurred while requesting audio: {exc}")
-        raise HTTPException(status_code=500, detail="Error communicating with TTS service")
-
-    # Check the response status code
-    if response.status_code == 200:
-        logger.info("Received 200 OK from TTS service")
-        return JSONResponse(status_code=200, content={})
-    else:
-        logger.error(f"Received non-OK response: {response.status_code}")
-        raise HTTPException(status_code=response.status_code, detail="Error getting audio")
-    
-
-
-@app.post("/api/generate_script")
-async def generate_script(body: GenerateScriptRequest):
-    logger.info("Generating script")
-
-    if not body.podcast_name:
-        body.podcast_name = body.subject
-
-    payload = {
-        "user_id": body.user_id,
-        "subject": body.subject,
-    }
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=payload)
-
-    if response.status_code != 200:
-        logger.error(f"Unable to generate script: {response.status_code}")
-        raise HTTPException(status_code=response.status_code, detail="Error generating script")
-
-    script_id = response.json().get("script_id")
-    if not script_id:
-        logger.error("script_id not found in response")
-        raise HTTPException(status_code=500, detail="Script ID not found")
-
-    data_path = os.getenv("DATA_PATH")
-    if not data_path:
-        logger.error("DATA_PATH environment variable is not set")
-        raise HTTPException(status_code=500, detail="DATA_PATH not set")
-
-    script_path = f"{data_path}/names.json"
-    try:
-        with open(script_path, "r+") as f:
-            existing_data = json.load(f)
-            existing_data[script_id] = body.podcast_name
-            f.seek(0)
-            json.dump(existing_data, f)
-            f.truncate()
-    except Exception as e:
-        logger.error(f"Unable to write to file: {e}")
-        raise HTTPException(status_code=500, detail="Error saving script")
-
-    logger.info("Script generated successfully")
-    return {"podcast_id": script_id}
-
 @app.post("/api/scripts")
 async def get_scripts(body: Dict[str, str]):
     logger.info("Getting scripts")
-
-    data_path = os.getenv("DATA_PATH")
-    scripts_path = f"{data_path}/{body['user_id']}/scripts/"
-
-    try:
-        entries = os.listdir(scripts_path)
-    except Exception as e:
-        logger.error(f"Unable to read directory: {e}")
-        raise HTTPException(status_code=500, detail="Unable to read scripts directory")
-
-    scripts = []
-    for entry in entries:
-        if os.path.isdir(os.path.join(scripts_path, entry)):
-            continue
-
-        podcast_id = entry.replace("script_", "").replace(".json", "")
-
-        try:
-            with open(f"{data_path}/names.json") as f:
-                names = json.load(f)
-        except Exception as e:
-            logger.error(f"Unable to open names file: {e}")
-            continue
-
-        podcast_name = names.get(podcast_id)
-        if not podcast_name:
-            logger.error(f"Name not found for podcast ID: {podcast_id}")
-            continue
-
-        scripts.append({"id": podcast_id, "name": podcast_name})
-
+    scripts = firebase_storage.list_scripts(body['user_id'])
     return scripts
+
+@app.post("/api/podcasts")
+async def get_podcasts_from_user(body: GetPocastsRequest):
+    logger.info("Getting podcasts")
+    podcasts = firebase_storage.get_user_podcasts(body.user_id)
+    return podcasts
+
+@app.post("/api/get_audio")
+async def get_audio(body: RequestBody):
+    logger.info("Getting audio")
+    audio = firebase_storage.get_audio(body.user_id, body.podcast_id)
+    if not audio:
+        logger.error("Audio not found")
+        raise HTTPException(status_code=404, detail="Audio not found")
+    
+    # Ensure the audio is in bytes
+    if isinstance(audio, bytes):
+        def audio_stream():
+            yield audio
+        
+        return StreamingResponse(audio_stream(), media_type="audio/mpeg")
+    
+    else:
+        logger.error("Audio is not in bytes format")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/api/get_image")
+async def get_image(body: RequestBody):
+    logger.info("Getting image")
+    image_url = firebase_storage.get_image(body.user_id, body.podcast_id)
+    if not image_url:
+        logger.error("Image not found")
+        return JSONResponse(status_code=404, content={"detail": "Image not found"})
+    return {"image_url": image_url}
+
 
 @app.post("/api/generate_podcast")
 async def generate_podcast(body: GeneratePodcastRequest):
@@ -250,13 +154,13 @@ async def generate_podcast(body: GeneratePodcastRequest):
         "subject": body.subject,
     }
 
-    async with httpx.AsyncClient(timeout=600.0) as client:  # Set timeout to 600 seconds (10 minutes)
+    async with httpx.AsyncClient(timeout=1200.0) as client:  # Set timeout to 1200 seconds (20 minutes)
         try:
             script_response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=script_payload)
 
         except httpx.TimeoutException:
-            logger.error("The request to the TTS service timed out")
-            raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
+            logger.error("The request to the gemini service timed out")
+            raise HTTPException(status_code=504, detail="The request to the gemini service timed out")
         
         except httpx.RequestError as exc:
             logger.error(f"An error occurred while requesting the script: {exc}")
@@ -266,55 +170,33 @@ async def generate_podcast(body: GeneratePodcastRequest):
         logger.error(f"Unable to generate script: {script_response.status_code}")
         raise HTTPException(status_code=script_response.status_code, detail="Error generating script")
 
-    script_id = script_response.json().get("script_id")
-    if not script_id:
-        logger.error("script_id not found in response")
+    podcast_id = script_response.json().get("podcast_id")
+    if not podcast_id:
+        logger.error("podcast_id not found in response")
         raise HTTPException(status_code=500, detail="Script ID not found")
-
-    # Save podcast name
-    data_path = os.getenv("DATA_PATH")
-    if not data_path:
-        logger.error("DATA_PATH environment variable is not set")
-        raise HTTPException(status_code=500, detail="DATA_PATH not set")
-
-    script_path = f"{data_path}/names.json"
-    if not os.path.exists(script_path):
-        with open(script_path, "w") as f:
-            f.write("{}")
     
-    # Read file and get data
-    existing_data = {}
-    try:
-        with open(script_path, "r") as f:
-            existing_data = json.load(f)
-    except Exception as e:
-        logger.error(f"Unable to read file: {e}")
-        raise HTTPException(status_code=500, detail="Error reading script file")
-    
-    # Add new data
-    existing_data[script_id] = body.podcast_name
-    try:
-        with open(script_path, "w") as f:
-            json.dump(existing_data, f)
-    except Exception as e:
-        logger.error(f"Unable to write to file: {e}")
-        raise HTTPException(status_code=500, detail="Error saving script")
-
     logger.info("Script generated successfully")
 
+    # Firebase
+    firebase_storage.save_podcast_name(podcast_id, body.podcast_name, body.subject)
+    logger.info("Podcast name saved to Firebase")
+
     # Generate audio
+    logger.info("Generating audio")
     audio_payload = {
         "user_id": body.user_id,
         "podcast_name": body.podcast_name,
-        "podcast_id": script_id,
+        "podcast_id": podcast_id,
     }
 
-    async with httpx.AsyncClient(timeout=600.0) as client:  # Set timeout to 600 seconds (10 minutes)
+    async with httpx.AsyncClient(timeout=1200.0) as client:
         try:
             audio_response = await client.post(f"http://{config.TTS_IP}:{config.TTS_Port}/api/audio", json=audio_payload)
+
         except httpx.TimeoutException:
             logger.error("The request to the TTS service timed out")
             raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
+        
         except httpx.RequestError as exc:
             logger.error(f"An error occurred while requesting audio: {exc}")
             raise HTTPException(status_code=500, detail="Error communicating with TTS service")
@@ -324,7 +206,45 @@ async def generate_podcast(body: GeneratePodcastRequest):
         raise HTTPException(status_code=audio_response.status_code, detail="Error generating audio")
 
     logger.info("Audio generated successfully")
-    return {"podcast_id": script_id}
+    return {"podcast_id": podcast_id}
+
+
+class AudioRequest(BaseModel):
+    podcast_id: str
+    user_id: str
+    podcast_name: str
+    subject: str
+
+@app.post("/api/generate_audio")
+async def generate_audio(body: AudioRequest):
+    podcast_id = body.podcast_id
+
+    # Generate audio
+    logger.info("Generating audio")
+    audio_payload = {
+        "user_id": body.user_id,
+        "podcast_name": body.podcast_name,
+        "podcast_id": podcast_id,
+    }
+
+    async with httpx.AsyncClient(timeout=1200.0) as client:
+        try:
+            audio_response = await client.post(f"http://{config.TTS_IP}:{config.TTS_Port}/api/audio", json=audio_payload)
+
+        except httpx.TimeoutException:
+            logger.error("The request to the TTS service timed out")
+            raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
+        
+        except httpx.RequestError as exc:
+            logger.error(f"An error occurred while requesting audio: {exc}")
+            raise HTTPException(status_code=500, detail="Error communicating with TTS service")
+
+    if audio_response.status_code != 200:
+        logger.error(f"Received non-OK response from audio generation: {audio_response.status_code}")
+        raise HTTPException(status_code=audio_response.status_code, detail="Error generating audio")
+
+    logger.info("Audio generated successfully")
+    return {"podcast_id": podcast_id}
 
 if __name__ == "__main__":
     import uvicorn

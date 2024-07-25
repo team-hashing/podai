@@ -9,8 +9,11 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
 import asyncio
 from httpx import Timeout
+from io import BytesIO
+from PIL import Image
 
 
 app = FastAPI()
@@ -30,43 +33,41 @@ class Podcast(BaseModel):
 
 @app.get("/")
 async def root(request: Request):
-    # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
-        response = await client.post(f'{API_URL}/api/scripts', json={"user_id": "user1"})
+        # Send a POST request to the scripts API
+        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": "user1"})
         response.raise_for_status()
         podcasts_data = response.json()
 
-    # Create a list of Podcast objects from the response data
-    podcasts = [Podcast(id=data['id'], name=data['name'],
-                        image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+        podcasts = [Podcast(id=data['id'], name=data['name'],
+                            image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+
+        # get images for each podcast
+        for podcast in podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            if response.status_code != 404:
+                data = response.json()
+                podcast.image = data.get("image_url")
 
     return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
 
 
 @app.get("/audio/{user_id}/{podcast_id}")
 async def get_audio(user_id: str, podcast_id: str):
-    # print all files in the directory
-    print(os.listdir(f"{DATA_PATH}/{user_id}/audios"))
-    audio_path = f"{DATA_PATH}/{user_id}/audios/{podcast_id}.wav"
-    if os.path.exists(audio_path):
-        return {"audioUrl": f"/stream-audio/{user_id}/{podcast_id}"}
-    else:
-        raise HTTPException(status_code=404, detail="Audio file not found")
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f'{API_URL}/api/get_audio', json={"user_id": user_id, "podcast_id": podcast_id})
+        response.raise_for_status()
+        audio_data = response.content
+        if not audio_data:
+            raise HTTPException(status_code=404, detail="Audio not found")
+        else:
+            return StreamingResponse(iter([audio_data]), media_type="audio/mpeg")
 
-
-@app.get("/stream-audio/{user_id}/{podcast_id}")
-async def stream_audio(user_id: str, podcast_id: str):
-    audio_path = f"{DATA_PATH}/{user_id}/audios/{podcast_id}.wav"
-    if os.path.exists(audio_path):
-        return FileResponse(audio_path, media_type="audio/wav")
-    else:
-        raise HTTPException(status_code=404, detail="Audio file not found")
 
 
 class PodcastGenerationRequest(BaseModel):
     name: str
     subject: str
-
 
 
 @app.post("/generate-podcast")
@@ -85,61 +86,57 @@ async def generate_podcast(request: PodcastGenerationRequest):
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(f'{API_URL}/api/generate_podcast', json=payload)
         if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+            raise HTTPException(
+                status_code=response.status_code, detail=response.text)
         podcast_data = response.json()
 
     # Create a new Podcast object
-    new_podcast = Podcast(
-        id=podcast_data['podcast_id'],
-        name=request.name,
-        image=f'https://picsum.photos/seed/{request.name}/200'
-    )
+    # new_podcast = Podcast(
+    #     id=podcast_data['podcast_id'],
+    #     name=request.name,
+    #     image=f'https://picsum.photos/seed/{request.name}/200'
+    # )
 
     # Get the updated list of podcasts
-    podcasts = await get_podcasts()
-    podcasts.append(new_podcast)
+    # podcasts = await get_podcasts()
+    # podcasts.append(new_podcast)
 
-    return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
+    # return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
+    return {"message": "Podcast generated successfully"}
+
+
+@app.get("/generate-audio")
+async def generate_audio():
+    payload = {
+        "podcast_id": "7a4599f3-306d-4611-b9a2-d9ec0ca916a8",
+        "user_id": "user1",
+        "podcast_name": "The Roman Podcast",
+        "subject": "Roman History"
+    }
+    timeout = Timeout(90.0 * 600)
+    # Send a POST request to the podcast generation API
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(f'{API_URL}/api/generate_audio', json=payload)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code, detail=response.text)
+        podcast_data = response.json()
+
 
 async def get_podcasts():
-    return []
-    # Send a POST request to the scripts API
     async with httpx.AsyncClient() as client:
-        response = await client.post(f'{API_URL}/api/scripts', json={"user_id": "user1"})
+        # Send a POST request to the scripts API
+        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": "user1"})
         response.raise_for_status()
         podcasts_data = response.json()
 
-    # Create a list of Podcast objects from the response data
-    podcasts = [Podcast(id=data['id'], name=data['name'],
-                        image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
-    
+        podcasts = [Podcast(id=data['id'], name=data['name'],
+                            image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+
+        # get images for each podcast
+        for podcast in podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            if response.status_code != 404:
+                podcast.image = response.content
+
     return podcasts
-
-"""
-@app.post("/generate-podcast")
-async def generate_podcast(request: PodcastGenerationRequest):
-
-    # Send a POST request to the scripts API
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f'{API_URL}/api/scripts', json={"user_id": "user1"})
-        response.raise_for_status()
-        podcasts_data = response.json()
-
-    # Create a list of Podcast objects from the response data
-    podcasts = [Podcast(id=data['id'], name=data['name'],
-                        image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
-
-    # Simulate a long-running process
-    await asyncio.sleep(5)
-
-    # In a real scenario, you would generate the podcast here
-    new_podcast = Podcast(
-        id=str(len(podcasts) + 1),
-        name=request.name,
-        # Use a default image or generate one
-        image="/static/images/generated_podcast.jpg"
-    )
-    podcasts.append(new_podcast)
-    return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
-"""
-

@@ -1,5 +1,5 @@
 *.wav
-*.mp3
+*.wav
 *__pycache__/
 __pycache__*
 .venv
@@ -19,6 +19,7 @@ gemini/.venv
 !gemini/src/
 !gemini/requirements.txt
 google-key.json
+firebase-key.json
 
 # Data
 data/

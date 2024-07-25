@@ -29,10 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const userId = 'user1'; // TODO Replace with actual user ID when you have user authentication
             const response = await fetch(`/audio/${userId}/${podcastId}`);
-
+            console.log(response);
             if (response.ok) {
-                const data = await response.json();
-                audioElement.src = data.audioUrl;
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioElement.src = audioUrl;
                 audioElement.play();
                 currentPodcastImage.src = podcastImage;
                 currentPodcastTitle.textContent = podcastName;

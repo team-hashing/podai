@@ -1,18 +1,18 @@
 import json
 import time
-import random
-import string
 import os
-import json
 import piper
 import wave
 from pydub import AudioSegment
 from typing import List, Dict
 import logging
+from io import BytesIO
 
 from src.models import Podcast
+from src.storage import FirebaseStorage
 
 logger = logging.getLogger("uvicorn")
+firebase_storage = FirebaseStorage()
 
 voices_folder = 'voices/'
 voices = {
@@ -20,163 +20,162 @@ voices = {
     "female": (voices_folder + "en_GB-northern_english_male-medium.onnx", voices_folder + "en_GB-northern_english_male-medium.onnx.json")
 }
 
-
-def get_audio_files(path: str) -> List[str]:
+def get_audio_files(user_id: str, podcast_id: str) -> List[BytesIO]:
     """
-    Get a list of .wav files from the specified directory.
+    Get a list of .wav files from Firebase Storage.
 
-    :param path: The directory to search for .wav files.
-    :return: A sorted list of .wav files.
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
+    :return: A sorted list of .wav files as BytesIO objects.
     """
     try:
-        files = [f for f in os.listdir(path) if f.endswith('.wav')]
-        files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
-        logger.info(f"Found {len(files)} .wav files in directory {path}")
-        return files
+        files = firebase_storage.list_temp_audio_files(user_id, podcast_id)
+        files = [file.split('/')[-1] for file in files if file.endswith('.wav')]
+
+
+        # sort files by string order
+        files.sort()
+        logger.info(f"Found {len(files)} .wav files for podcast {podcast_id}")
+        
+        audio_files = []
+        for file in files:
+            logger.debug(f"Attempting to load audio file: {file}")
+            audio_file = firebase_storage.get_temp_audio_file(user_id, podcast_id, file)
+            if audio_file is None:
+                logger.error(f"Error loading audio file: {file}")
+            else:
+                audio_files.append(audio_file)
+        
+        return audio_files
+    
     except Exception as e:
         logger.error(f"Error while getting audio files: {e}")
         return []
 
-def concatenate_audio_files(files: List[str], path: str) -> AudioSegment:
+
+def concatenate_audio_files(files: List[BytesIO]) -> AudioSegment:
     """
     Concatenate audio files into a single AudioSegment.
 
-    :param files: The list of files to concatenate.
-    :param path: The directory where the files are located.
+    :param files: The list of BytesIO objects to concatenate.
     :return: The concatenated AudioSegment.
     """
     audio_files = []
-    temp_audio_files_path = path + "temp/"
 
     for file in files:
         try:
-            logger.debug(f"Loading file {file}")
-            audio = AudioSegment.from_wav(temp_audio_files_path + file)
+            if isinstance(file, bytes):
+                file = BytesIO(file)
+            elif not isinstance(file, BytesIO):
+                logger.error(f"Invalid file type: {type(file)}. Expected BytesIO or bytes.")
+                continue
+            
+            logger.debug(f"Loading audio file")
+            file.seek(0)  # Ensure the file pointer is at the beginning
+            audio = AudioSegment.from_wav(file)
             audio_files.append(audio)
-            logger.info(f"Successfully loaded file {file}")
+            logger.info(f"Successfully loaded audio file")
+            
         except Exception as e:
-            logger.error(f"Error loading file {file}: {e}")
+            logger.error(f"Error loading audio file: {e}")
             continue
 
     return sum(audio_files, AudioSegment.empty())
 
-def export_audio(audio: AudioSegment, path: str, filename: str) -> None:
+def export_audio(audio: AudioSegment, user_id: str, podcast_id: str) -> None:
     """
-    Export an AudioSegment to a .wav file.
+    Export an AudioSegment to Firebase Storage.
 
     :param audio: The AudioSegment to export.
-    :param path: The directory to export the file to.
-    :param filename: The name of the file to export.
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
     """
     try:
-        logger.debug(f"Exporting audio to {path + filename}")
-        audio.export(path + filename, format='wav')
-        logger.info(f"Successfully exported audio to {path + filename}")
+        logger.debug(f"Exporting audio for podcast {podcast_id}")
+        buffer = BytesIO()
+        audio.export(buffer, format='wav')
+        firebase_storage.save_audio(user_id, podcast_id, buffer.getvalue())
+        logger.info(f"Successfully exported audio for podcast {podcast_id}")
     except Exception as e:
         logger.error(f"Error exporting audio: {e}")
 
-def remove_files(files: List[str], path: str) -> None:
+def remove_temp_files(user_id: str, podcast_id: str) -> None:
     """
-    Remove specified files from a directory.
+    Remove temporary audio files from Firebase Storage.
 
-    :param files: The list of files to remove.
-    :param path: The directory where the files are located.
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
     """
-    for file in files:
-        try:
-            logger.debug(f"Removing file {file}")
-            os.remove(path + file)
-            logger.info(f"Successfully removed file {file}")
-        except Exception as e:
-            logger.error(f"Error removing file {file}: {e}")
+    try:
+        logger.debug(f"Removing temporary files for podcast {podcast_id}")
+        firebase_storage.remove_temp_audio_files(user_id, podcast_id)
+        logger.info(f"Successfully removed temporary files for podcast {podcast_id}")
+    except Exception as e:
+        logger.error(f"Error removing temporary files: {e}")
 
-def concatenate_audio(path: str = 'podcasts/', filename: str = 'podcast.wav') -> None:
+def concatenate_audio(user_id: str, podcast_id: str) -> None:
     """
-    Concatenate .wav files in a directory into a single .wav file, then remove the original files.
+    Concatenate .wav files in Firebase Storage into a single .wav file, then remove the original files.
 
-    :param path: The directory to search for .wav files.
-    :param filename: The name of the file to export.
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
     """
-    temp_audio_files_path = path + "temp/"
     try:
         logger.debug("Getting audio files")
-        files = get_audio_files(temp_audio_files_path)
+        files = get_audio_files(user_id, podcast_id)
         logger.info(f"Got {len(files)} audio files")
 
         logger.debug("Concatenating audio files")
-        combined = concatenate_audio_files(files, path)
+        combined = concatenate_audio_files(files)
         logger.info("Successfully concatenated audio files")
 
-        logger.debug(f"Exporting audio to {filename}")
-        export_audio(combined, path, filename)
-        logger.info(f"Successfully exported audio to {filename}")
+        logger.debug(f"Exporting audio for podcast {podcast_id}")
+        export_audio(combined, user_id, podcast_id)
+        logger.info(f"Successfully exported audio for podcast {podcast_id}")
 
-        logger.debug("Removing original audio files")
-        remove_files(files, temp_audio_files_path)
-        logger.info("Successfully removed original audio files")
+        logger.debug("Removing temporary audio files")
+        remove_temp_files(user_id, podcast_id)
+        logger.info("Successfully removed temporary audio files")
 
     except Exception as e:
         logger.error(f"Error in audio processing: {e}")
 
-
-
-
-def generate_audio_for_host(host_sentences: Dict[str, str], voice_type: str, path: str) -> None:
+def generate_audio_for_host(host_sentences: Dict[str, str], voice_type: str, user_id: str, podcast_id: str) -> None:
     """
-    Generate audio files for each sentence spoken by a host.
+    Generate audio files for each sentence spoken by a host and save to Firebase Storage.
 
     :param host_sentences: A dictionary where keys are sentence IDs and values are sentences.
     :param voice_type: The type of voice to use ("male" or "female").
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
     """
     for sentence_id, sentence in host_sentences.items():
-        output_file_sentence = f"{path}{sentence_id}.wav"
         voice = piper.PiperVoice.load(voices[voice_type][0], voices[voice_type][1], True)
-        with open(output_file_sentence, 'wb') as f:
-            with wave.open(f, 'wb') as wav:
-                try:
-                    logger.debug(f"Synthesizing audio for sentence {sentence_id}")
-                    voice.synthesize(sentence, wav)
-                    logger.info(f"Successfully synthesized audio for sentence {sentence_id}")
-                except Exception as e:
-                    logger.error(f"Error in generating audio for sentence {sentence_id}: {e}. Skipping to next sentence.")
+        buffer = BytesIO()
+        with wave.open(buffer, 'wb') as wav:
+            try:
+                logger.debug(f"Synthesizing audio for sentence {sentence_id}")
+                voice.synthesize(sentence, wav)
+                # if number is only less than 4 digits, add the corresponding ammount of 0 to the front
+                if sentence_id < 1000:
+                    sentence_id = f"{sentence_id:04}"
+                logger.info(f"Successfully synthesized audio for sentence {sentence_id}")
+                firebase_storage.save_temp_audio_file(user_id, podcast_id, f"{sentence_id}.wav", buffer.getvalue())
+            except Exception as e:
+                logger.error(f"Error in generating audio for sentence {sentence_id}: {e}. Skipping to next sentence.")
 
-
-def generate_audio(male_host: Dict[str, str], female_host: Dict[str, str], filename: str, path: str) -> None:
+def generate_audio(male_host: Dict[str, str], female_host: Dict[str, str], user_id: str, podcast_id: str) -> None:
     """
     Generate audio files for each sentence spoken by the male and female hosts, then concatenate the audio files.
 
     :param male_host: A dictionary where keys are sentence IDs and values are sentences spoken by the male host.
     :param female_host: A dictionary where keys are sentence IDs and values are sentences spoken by the female host.
+    :param user_id: The user ID.
+    :param podcast_id: The podcast ID.
     """
-    temp_audio_files_path = path + "temp/"
-    if not os.path.exists(temp_audio_files_path):
-        os.makedirs(temp_audio_files_path)
-    else:
-        for file in os.listdir(temp_audio_files_path):
-            os.remove(temp_audio_files_path + file)
-
-    generate_audio_for_host(male_host, "male", temp_audio_files_path)
-    generate_audio_for_host(female_host, "female", temp_audio_files_path)
-    concatenate_audio(path, filename)
-
-
-
-def load_script(filename: str) -> Dict[str, str]:
-    """
-    Load a script from a JSON file.
-
-    :param filename: The name of the JSON file.
-    :return: A dictionary where keys are sentence IDs and values are sentences.
-    """
-
-    try:
-        logger.debug(f"Opening file data/{filename}")
-        with open('data/' + filename, "r") as script_file:
-            script = json.load(script_file)
-        logger.info(f"Successfully loaded script from data/{filename}")
-        return script
-    except Exception as e:
-        logger.error(f"Error loading script from data/{filename}: {e}")
+    generate_audio_for_host(male_host, "male", user_id, podcast_id)
+    generate_audio_for_host(female_host, "female", user_id, podcast_id)
+    concatenate_audio(user_id, podcast_id)
 
 def split_script_by_host(script: Dict[str, str]) -> Dict[str, Dict[str, str]]:
     """
@@ -189,8 +188,8 @@ def split_script_by_host(script: Dict[str, str]) -> Dict[str, Dict[str, str]]:
     female_host = {}
     line = 0
 
-    for key in script.keys():   
-        for i in script[key]:
+    for section_name in script.keys():   
+        for i in script[section_name]:
             line += 1
             try:
                 logger.debug(f"Processing line {line}")
@@ -206,58 +205,37 @@ def split_script_by_host(script: Dict[str, str]) -> Dict[str, Dict[str, str]]:
 
     return {"male": male_host, "female": female_host}
 
-
-
 def generate_podcast(podcast: Podcast) -> None:
     """
     Generate a podcast from a script.
 
-    :param filename: The name of the script file.
+    :param podcast: The Podcast object containing podcast information.
     """
-    data_path         = os.getenv("DATA_PATH", "/data")
-    scripts_directory = f"{data_path}/{podcast.user_id}/scripts/"
-    audios_directory  = f"{data_path}/{podcast.user_id}/audios/"
-    script_filename   = f"script_{podcast.podcast_id}.json"
-    audio_filename    = f"{podcast.podcast_id}.wav"
-    user_id           = podcast.user_id
-    podcast_id        = podcast.podcast_id
-
-
     try:
         start_time = time.time()
 
-        # Load script
-        logger.debug(f"Loading script from {script_filename}")
-        script_path = f"{scripts_directory}/{script_filename}"
-
-        if not os.path.exists(script_path):
-            logger.error(f"Script not found: {script_path}")
+        # Load script from Firebase
+        script = firebase_storage.get_script(podcast.user_id, podcast.podcast_id)
+        if script is None:
+            logger.error(f"Script not found: {podcast.podcast_id}")
             return
 
-        with open(script_path, "r") as script_file:
-            script = json.load(script_file)
         logger.info(f"Successfully loaded script {podcast.podcast_name}")
+
 
         # Split script by host
         logger.debug("Splitting script by host")
-        # logger.info(f"AAAAAAAAAAAAAAAAAAAAAAAAAAAA {script}")
         hosts = split_script_by_host(script)
         logger.info("Successfully split script by host")
 
         logger.debug("Generating podcast")
 
-        # Create directory if it doesn't exist
-        if not os.path.exists(f"{data_path}/{user_id}/audios"):
-            os.makedirs(f"{data_path}/{user_id}/audios")
-
-
         # Generate audio
         logger.debug("Generating audio")
-        generate_audio(hosts["male"], hosts["female"], podcast_id + ".wav", f"{data_path}/{user_id}/audios/")
+        generate_audio(hosts["male"], hosts["female"], podcast.user_id, podcast.podcast_id)
         logger.info("Successfully generated audio")
 
         end_time = time.time()
         logger.info(f"Podcast generated in {end_time - start_time:.2f} seconds.")
     except Exception as e:
         logger.error(f"Error in generating podcast: {e}")
-

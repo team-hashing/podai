@@ -1,0 +1,7 @@
+HTTP/1.1 404 Not Found
+date: Tue, 23 Jul 2024 14:35:32 GMT
+server: uvicorn
+content-length: 30
+content-type: application/json
+
+{"detail":"Podcast not found"}

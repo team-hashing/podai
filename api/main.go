@@ -336,21 +336,21 @@ func generateScriptHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the script_id from the response
+	// Get the podcast_id from the response
 	var respBody map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&respBody)
 	if err != nil {
 		logger.Error("Unable to decode response body: %v", err)
 		return
 	}
-	script_id, ok := respBody["script_id"].(string)
+	podcast_id, ok := respBody["podcast_id"].(string)
 	if !ok {
-		logger.Error("script_id not found in response")
+		logger.Error("podcast_id not found in response")
 		return
 	}
 
 	// Append the new data
-	existingData[script_id] = body.PodcastName
+	existingData[podcast_id] = body.PodcastName
 
 	// Write the data back to the file
 	file.Seek(0, 0)
@@ -363,9 +363,9 @@ func generateScriptHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Script generated successfully")
 
-	// return code 200 and the script_id
+	// return code 200 and the podcast_id
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"podcast_id": script_id})
+	json.NewEncoder(w).Encode(map[string]string{"podcast_id": podcast_id})
 }
 
 // Get all scripts of the given user_id
@@ -507,9 +507,9 @@ func generatePodcastHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Unable to decode script response body: %v", err)
 		return
 	}
-	scriptID, ok := scriptRespBody["script_id"].(string)
+	scriptID, ok := scriptRespBody["podcast_id"].(string)
 	if !ok {
-		logger.Error("script_id not found in response")
+		logger.Error("podcast_id not found in response")
 		return
 	}
 

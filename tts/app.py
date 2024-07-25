@@ -1,19 +1,17 @@
-# main.py
+# app.py
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from src.log import setup_logger
 from src.audio import generate_podcast
 from src.models import Podcast
+from src.storage import FirebaseStorage
 import os
-import json
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-PODCAST_DIR = "podcasts"
 
 app = FastAPI()
 logger = setup_logger("uvicorn")
-
-
+firebase_storage = FirebaseStorage()
 
 @app.post("/api/audio")
 async def read_audio(podcast: Podcast):
@@ -23,20 +21,24 @@ async def read_audio(podcast: Podcast):
 
     logger.info("Generating podcast")
 
-    # Get the script from data_path/user_id/scripts/podcast_id
-    data_path = os.getenv("DATA_PATH", "/data")
-    generate_podcast(podcast)
+    try:
+        generate_podcast(podcast)
+    except Exception as e:
+        logger.error(f"Error generating podcast: {e}")
+        raise HTTPException(status_code=500, detail="Error generating podcast")
 
-    # Check if podcast exists
-    podcast_path = f"{data_path}/{podcast.user_id}/audios/{podcast.podcast_id}.wav"
-    if not os.path.exists(podcast_path):
-        logger.error(f"Podcast not found: {podcast_path}")
+    audio = firebase_storage.get_audio(podcast.user_id, podcast.podcast_id)
+    if audio is None:
+        logger.error(f"Podcast not found: {podcast.podcast_id}")
         raise HTTPException(status_code=404, detail="Podcast not found")
 
     return {"response_code": 200, "message": "Podcast generated successfully", "podcast": podcast}
 
-@app.get("/audio")
-def read_audio():
-    logger.info("Generating podcast")
-    generate_podcast("script.json")
-    return FileResponse("{PODCAST_DIR}/{podcast.user_id}/{podcast.podcast_name}.wav", media_type="audio/mpeg")
+@app.get("/audio/{user_id}/{podcast_id}")
+def read_audio(user_id: str, podcast_id: str):
+    logger.info(f"Retrieving podcast: {podcast_id} for user: {user_id}")
+    audio = firebase_storage.get_audio(user_id, podcast_id)
+    if audio is None:
+        logger.error(f"Podcast not found: {podcast_id}")
+        raise HTTPException(status_code=404, detail="Podcast not found")
+    return Response(content=audio, media_type="audio/wav")

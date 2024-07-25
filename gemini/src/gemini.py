@@ -1,206 +1,246 @@
 import argparse
-import vertexai
-from vertexai.generative_models import GenerativeModel, SafetySetting, HarmCategory, HarmBlockThreshold
-# ModelContent
-from vertexai.generative_models._generative_models import Content, Part
-
-
 import json
+import logging
 import time
+from typing import Dict, List, Optional, Any
+from pydantic import BaseModel
 
-# TODO(developer): Update and un-comment below line
-project_id = "podai-425012"
+class PodcastGenerationRequest(BaseModel):
+    subject: str
 
-vertexai.init(project=project_id, location="us-central1")
+import vertexai
+from vertexai.generative_models import (
+    GenerativeModel,
+    SafetySetting,
+    HarmCategory,
+    HarmBlockThreshold,
+    Content,
+    Part,
+)
 
-#### CONFIGS ####################
+# Configuration
+PROJECT_ID = "podai-425012"
+LOCATION = "us-central1"
+MODEL_NAME = "gemini-1.5-flash-001"
+MAX_RETRIES = 3
+RETRY_DELAY = 30
 
-generation_config = {
+# Model configurations
+GENERATION_CONFIG = {
     "temperature": 0.7,
-    # "top_p": 0.9,
-    # "top_k": 40,
-    # "max_output_tokens": 1024,
     "response_mime_type": "application/json",
 }
 
-safety_settings = [
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
+SAFETY_SETTINGS = [
+    SafetySetting(category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
+    SafetySetting(category=HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
 ]
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-model = GenerativeModel(
-    model_name="gemini-1.5-flash-001",
-    safety_settings=safety_settings,
-    generation_config=generation_config,
+class AIModelError(Exception):
+    """Custom exception for AI model related errors."""
+    pass
 
-)
+class PodcastGenerator:
+    def __init__(self):
+        self.initialize_vertexai()
+        self.json_model = self.create_model(GENERATION_CONFIG)
+        self.main_model = self.create_model(GENERATION_CONFIG)
+        self.chat_session = None
 
-# Separate model configuration for generating JSON
-json_generation_config = {
-    "temperature": 0.7,
-    # "top_p": 0.9,
-    # "top_k": 40,
-    # "max_output_tokens": 1024,
-    "response_mime_type": "application/json",
-}
+    @staticmethod
+    def initialize_vertexai():
+        vertexai.init(project=PROJECT_ID, location=LOCATION)
 
-json_model = GenerativeModel(
-    model_name="gemini-1.5-flash-001",
-    safety_settings=safety_settings,
-    generation_config=json_generation_config,
-)
+    @staticmethod
+    def create_model(config: Dict) -> GenerativeModel:
+        return GenerativeModel(
+            model_name=MODEL_NAME,
+            safety_settings=SAFETY_SETTINGS,
+            generation_config=config,
+        )
 
-
-def generate_script_part(chat_session, message):
-    max_attempts = 3
-    for attempt in range(max_attempts):
-        try:
-            response = chat_session.send_message(message)
-            break
-        except Exception as e:
-            if attempt < max_attempts - 1:  # if it's not the last attempt
-                for i in range(30, 0, -1):
-                    print(f"Max uses per minute: Retrying in {i} seconds...", end='\r')
-                    time.sleep(1)
-                print()
-            else:
-                print("Error: Maximum number of attempts reached.")
-                return None
-    else:
-        print("No response received.")
+    @staticmethod
+    def retry_operation(func: callable, *args, **kwargs) -> Any:
+        for attempt in range(MAX_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    # If e contains 429
+                    if "429" in str(e):
+                        logger.warning(f"Rate limit exceeded. Retrying in {RETRY_DELAY} seconds...")
+                        time.sleep(RETRY_DELAY)
+                    else:
+                        raise AIModelError(f"Failed to execute operation: {e}")
+                else:
+                    logger.error(f"Error: Maximum number of attempts reached. {e}")
+                    raise AIModelError(f"Failed to execute operation after {MAX_RETRIES} attempts: {e}")
         return None
 
-    if response.text:
+    def generate_content(self, prompt: str) -> Optional[str]:
+        response = self.retry_operation(self.json_model.generate_content, prompt)
+        return response.text.strip() if response else None
+
+    @staticmethod
+    def parse_json_response(response: str) -> Optional[Dict]:
         try:
-            return json.loads(response.text)
+            return json.loads(response.replace("```json", "").replace("```", ""))
         except json.JSONDecodeError:
-            print("JSON FAIL: ", response.text)
-            print("Failed to decode JSON response.")
+            logger.error("Failed to decode JSON response.")
             return None
 
+    def generate_sections(self, subject: str) -> Optional[List[str]]:
+        sections_prompt = f"""
+        Generate a detailed outline for a podcast script on the subject "{subject}". 
+        The outline should include many fine-grained sections that cover various aspects of the topic comprehensively.
+        Provide the output as a JSON array with a string for each section's title.
+        """
+        sections_response = self.generate_content(sections_prompt)
+        return self.parse_json_response(sections_response) if sections_response else None
 
-def generate_sections(subject):
-    sections_prompt = f"""
-    Generate a detailed outline for a podcast script on the subject "{subject}". 
-    The outline should include many fine-grained sections that cover various aspects of the topic comprehensively.
-    Provide the output as a JSON array with a string for each section's title.
-    """
-    # Create a Part object
-    part = Part.from_text("sections_prompt")
-
-    # Create a Content object
-    # content = Content(role="user", parts=[part])
-
-    # sections_response = json_model.start_chat(history=[content]).send_message(sections_prompt)
-
-    sections_response = json_model.generate_content(sections_prompt)
-    return sections_response.text.strip()
-
-def generate_detailed_section(chat_session, subject, section_title):
-    section_prompt = f"""
-    Based on the subject "{subject}" and the section title "{section_title}", write a detailed section for a podcast.
-    Alternate between Male Host and Female Host. Provide multiple viewpoints, subpoints, and examples. Be simple with your sentences, be aware this will be spoken and it has to sound natural.
-    """
-    detailed_content = {}
-
-    # Generate content in smaller segments
-    for i in range(2):  # Adjust the range if needed
-        segment_prompt = f"{section_prompt}\nSegment {i+1}:\nMale Host: (start discussing)\nFemale Host: (continue)\nMale Host: (add more details)"
-        segment_content = generate_script_part(chat_session, segment_prompt)
-        if not segment_content:
-            print("Failed to generate segment content.")
-            return None
-
-        if section_title not in detailed_content.keys():
-            detailed_content.update(segment_content)
-        
-        else:
-            # TODO No me fio de que esto este bien
-            if isinstance(detailed_content[section_title], str):
-                # Convert string to list
-                detailed_content[section_title] = [detailed_content[section_title]]
-            elif isinstance(detailed_content[section_title], dict):
-                # Convert dict to list of dicts
-                detailed_content[section_title] = [detailed_content[section_title]]
-            
-            if isinstance(segment_content[section_title], dict):
-                # Convert dict to list of dicts
-                segment_content[section_title] = [segment_content[section_title]]
-            
-            detailed_content[section_title].extend(segment_content[section_title])
-    
-    return detailed_content
-
-def generate_podcast_script(subject):
-
-    # Generate podcast structure
-    print("Geneating sections...")
-    sections_response = generate_sections(subject)
-
-    # Parse the JSON response
-    try:
-        sections_response = sections_response.replace("```json", "").replace("```", "")
-        sections = json.loads(sections_response)
-    except json.JSONDecodeError:
-        print("Failed to decode JSON response.")
+    def generate_script_part(self, message: str) -> Optional[Dict]:
+        for _ in range(3):  # Intentar hasta 3 veces
+            response = self.retry_operation(self.chat_session.send_message, message)
+            if response and response.text:
+                try:
+                    return self.parse_json_response(response.text)
+                
+                except ValueError:
+                    continue
         return None
 
-    # Initialize chat session with the main model
-    chat_session = model.start_chat(history=[])
+    def generate_detailed_section(self, subject: str, section_title: str) -> Optional[Dict]:
+        section_prompt = f"""
+        Based on the subject "{subject}" and the section title "{section_title}", write a detailed section for a podcast.
+        Alternate between Male Host and Female Host. Provide multiple viewpoints, subpoints, and examples. Be simple with your sentences, be aware this will be spoken and it has to sound natural.
+        """
 
-    # Step 2: Generate the Introduction
-    intro_prompt = f'Based on the subject "{subject}", write a detailed and engaging introduction for a podcast. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural. Here is the outline for reference:\n{json.dumps(sections)}\n\nMale Host: (start the introduction)\nFemale Host: (continue the introduction)'
-    print("Generating script...")
-    introduction = generate_script_part(chat_session, intro_prompt)
-
-    # Step 3: Generate the Detailed Discussions
-    full_script = {}
-    full_script = introduction
-
-    for i, section_title in enumerate(sections):
-        print(f"Generating section {i}...")
-        section_content = generate_detailed_section(chat_session, subject, section_title)
-        if section_content is None:
-            print("Failed to generate detailed section.")
-            return None
-        else:
-            if full_script is None: # TODO Esto no deberia ser nunca None
-                full_script = section_content
+        for i in range(3):
+            segment_prompt = f"{section_prompt}\nSegment {i+1}:\nMale Host: (start discussing)\nFemale Host: (continue)\nMale Host: (add more details)"
+            segment_content = self.generate_script_part(segment_prompt)
+            
+            if not segment_content:
+                logger.error("Failed to generate segment content.")
             else:
+                return segment_content
+            
+        return None
+            
+            
+
+    async def generate_podcast_script(self, request: str) -> Optional[Dict]:
+        subject = request
+        logger.info(f"Generating podcast script for subject: {subject}")
+
+        try:
+            logger.info("Generating sections...")
+            sections = self.generate_sections(subject)
+            if not sections:
+                logger.error("Failed to generate sections")
+                return None
+
+            self.chat_session = self.main_model.start_chat(history=[])
+
+            logger.info("Generating introduction...")
+            intro_prompt = self.create_intro_prompt(subject, sections)
+
+            max_attempts = 3
+            attempts = 0
+            introduction = None
+            full_script = {}
+
+
+            while attempts < max_attempts:
+                introduction = self.generate_script_part(intro_prompt)
+                if introduction:
+                    break
+                attempts += 1
+                logger.warning(f"Attempt {attempts} failed to generate introduction")
+
+            if not introduction:
+                logger.error("Failed to generate introduction after 3 attempts")
+                return None
+
+            full_script.update(introduction)
+
+            for i, section_title in enumerate(sections, 1):
+                logger.info(f"Generating section {i}...")
+                attempts = 0
+                max_attempts = 3    # It can fail
+                section_content = None
+
+                while attempts < max_attempts:
+                    section_content = self.generate_detailed_section(subject, section_title)
+                    if section_content:
+                        break
+                    attempts += 1
+                    logger.warning(f"Attempt {attempts} failed for section {i}. Retrying...")
+
+                if not section_content:
+                    logger.error(f"Failed to generate section {i} after {max_attempts} attempts")
+                    return None
+
                 full_script.update(section_content)
 
-    # Step 4: Generate the Conclusion
-    conclusion_prompt = f'Based on the subject "{subject}", write a conclusion for the podcast. Summarize the key points discussed and provide final thoughts or actionable insights. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural\n\nOutline: {json.dumps(sections)}\n\nMale Host: (start the conclusion)\nFemale Host: (continue the conclusion)\nMale Host: (finish the conclusion)'
-    print("Generating conclusion...")
-    conclusion = generate_script_part(chat_session, conclusion_prompt)
+            logger.info("Generating conclusion...")
+            conclusion_prompt = self.create_conclusion_prompt(subject, sections)
 
-    full_script.update(conclusion)
-    # Save the script to a file
-    with open("script.json", "w") as script_file:
-        script_file.write(json.dumps(full_script))  # Convert the dictionary to a string before writing
+            max_attempts = 3
+            attempts = 0
+            conclusion = None
 
-    return full_script
+            while attempts < max_attempts:
+                conclusion = self.generate_script_part(conclusion_prompt)
+                if conclusion:
+                    break
+                attempts += 1
+                logger.warning(f"Attempt {attempts} failed to generate conclusion")
+
+            if not conclusion:
+                logger.error("Failed to generate conclusion after 3 attempts")
+                return None
+
+            full_script.update(conclusion)
 
 
-if __name__ == "__main__":
+            return full_script
+        
+        except Exception as e:
+            logger.exception(f"An error occurred while generating the podcast script: {e}")
+            return None
+
+
+    @staticmethod
+    def create_intro_prompt(subject: str, sections: List[str]) -> str:
+        return f'Based on the subject "{subject}", write a detailed and engaging introduction for a podcast. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural. Here is the outline for reference:\n{json.dumps(sections)}\n\nMale Host: (start the introduction)\nFemale Host: (continue the introduction)'
+
+    @staticmethod
+    def create_conclusion_prompt(subject: str, sections: List[str]) -> str:
+        return f'Based on the subject "{subject}", write a conclusion for the podcast. Summarize the key points discussed and provide final thoughts or actionable insights. Alternate between Male Host and Female Host. Be simple with your sentences, be aware this will be spoken and it has to sound natural\n\nOutline: {json.dumps(sections)}\n\nMale Host: (start the conclusion)\nFemale Host: (continue the conclusion)\nMale Host: (finish the conclusion)'
+
+def main():
     parser = argparse.ArgumentParser(description='Generate a podcast script.')
     parser.add_argument('subject', type=str, help='The subject of the podcast')
-
     args = parser.parse_args()
 
+    podcast_generator = PodcastGenerator()
 
     start_time = time.time()
+    try:
+        script = podcast_generator.generate_podcast_script(args.subject)
+        if script:
+            end_time = time.time()
+            logger.info(f"Script generated successfully. Execution time: {end_time - start_time:.2f} seconds")
+        else:
+            logger.error("Failed to generate the complete script.")
+    except AIModelError as e:
+        logger.error(f"AI Model Error: {e}")
+    except Exception as e:
+        logger.exception(f"Unexpected error occurred: {e}")
 
-    script = generate_podcast_script(args.subject)
-
-    end_time = time.time()
-    execution_time = end_time - start_time
-
-    print(f"Execution time: {execution_time} seconds")
+if __name__ == "__main__":
+    main()
