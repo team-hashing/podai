@@ -65,3 +65,12 @@ class FirebaseStorage:
         for blob in blobs:
             blob.delete()
 
+
+    # a method to download all files from firebase voices folder into the voices folder
+    def download_voices(self):
+        voices_folder = 'voices/'
+        blobs = self.bucket.list_blobs(prefix='voices/')
+        for blob in blobs:
+            file_name = blob.name.split('/')[-1]
+            blob.download_to_filename(voices_folder + file_name)
+

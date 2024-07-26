@@ -13,6 +13,12 @@ app = FastAPI()
 logger = setup_logger("uvicorn")
 firebase_storage = FirebaseStorage()
 
+if not os.path.exists("voices"):
+    os.makedirs("voices")
+
+if not os.listdir("voices"):
+    firebase_storage.download_voices()
+
 @app.post("/api/audio")
 async def read_audio(podcast: Podcast):
     if not podcast.user_id or not podcast.podcast_id or not podcast.podcast_name:
