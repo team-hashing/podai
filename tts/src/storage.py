@@ -68,11 +68,8 @@ class FirebaseStorage:
 
     def download_voices(self):
         voices_folder = 'voices/'
-        # Ensure the directory exists
-        os.makedirs(voices_folder, exist_ok=True)
-        
         blobs = self.bucket.list_blobs(prefix='voices/')
         for blob in blobs:
             file_name = blob.name.split('/')[-1]
-            blob.download_to_filename(os.path.join(voices_folder, file_name))
-
+            if file_name.endswith('.onnx') or file_name.endswith('.json'):
+                blob.download_to_filename(voices_folder + file_name)
