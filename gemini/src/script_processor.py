@@ -28,16 +28,26 @@ def process_script_line(line: dict) -> dict:
     return processed_line or line
 
 def standardize_script_format(script: dict) -> dict:
+    # Copy the keys of the original script in the original order
+    original_order = list(script.keys())
+    
     standardized_script = OrderedDict()
     for section, lines in script.items():
         try:
-            standarized_section = {section: [process_script_line(line) for line in lines if line]}
-            standardized_script.update(standarized_section)
+            standardized_section = {section: [process_script_line(line) for line in lines if line]}
+            standardized_script.update(standardized_section)
         except Exception as e:
             continue
     
     standardized_script = fix_host_names(standardized_script)
-    return standardized_script
+    
+    # Reorder the standardized_script to match the original order
+    ordered_standardized_script = OrderedDict()
+    for section in original_order:
+        if section in standardized_script:
+            ordered_standardized_script[section] = standardized_script[section]
+    
+    return ordered_standardized_script
 
 def fix_host_names(script: dict) -> dict:
     for section in script.values():

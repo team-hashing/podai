@@ -40,6 +40,14 @@ class FirebaseStorage:
         if doc.exists:
             return doc.to_dict()['name']
         return None
+    
+    def get_podcast_subject(self, podcast_id: str) -> str:
+        """Get podcast subject from Firestore"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()['subject']
+        return
 
     def save_script(self, user_id: str, podcast_id: str, script_content: str):
         """Save script to Firebase Storage"""

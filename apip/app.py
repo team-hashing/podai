@@ -117,7 +117,12 @@ async def get_audio(body: RequestBody):
     audio = firebase_storage.get_audio(body.user_id, body.podcast_id)
     if not audio:
         logger.error("Audio not found")
-        raise HTTPException(status_code=404, detail="Audio not found")
+        name = firebase_storage.get_podcast_name(body.user_id, body.podcast_id)
+        subject = firebase_storage.get_podcast_subject(body.user_id, body.podcast_id)
+        if name and subject:
+            audio_Petition = AudioRequest(podcast_id=body.podcast_id, user_id=body.user_id, podcast_name=name, subject=subject)
+            await generate_audio(audio_Petition)
+        return JSONResponse(status_code=404, content={"detail": "Audio not found"})
     
     # Ensure the audio is in bytes
     if isinstance(audio, bytes):

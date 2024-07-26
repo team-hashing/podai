@@ -103,8 +103,9 @@ class PodcastGenerator:
         return self.parse_json_response(sections_response) if sections_response else None
 
     def generate_script_part(self, message: str) -> Optional[Dict]:
+        format = "Format: {section_title: [{'male_host': '...'}, {'female_host': '...'}, {'male_host': '...'}, {'female_host': '...'}, {'male_host': '...'}, {'female_host': '...'}, ...]}"
         for _ in range(3):  # Intentar hasta 3 veces
-            response = self.retry_operation(self.chat_session.send_message, message)
+            response = self.retry_operation(self.chat_session.send_message, message + format)
             if response and response.text:
                 try:
                     return self.parse_json_response(response.text)
@@ -153,6 +154,8 @@ class PodcastGenerator:
             introduction = None
             full_script = {}
 
+            section_number = 1
+
 
             while attempts < max_attempts:
                 introduction = self.generate_script_part(intro_prompt)
@@ -165,7 +168,9 @@ class PodcastGenerator:
                 logger.error("Failed to generate introduction after 3 attempts")
                 return None
 
+            introduction = {f"{section_number:03d}_{list(introduction.keys())[0]}": list(introduction.values())[0]}
             full_script.update(introduction)
+            section_number += 1
 
             for i, section_title in enumerate(sections, 1):
                 logger.info(f"Generating section {i}...")
@@ -184,7 +189,9 @@ class PodcastGenerator:
                     logger.error(f"Failed to generate section {i} after {max_attempts} attempts")
                     return None
 
+                section_content = {f"{section_number:03d}_{list(section_content.keys())[0]}": list(section_content.values())[0]}
                 full_script.update(section_content)
+                section_number += 1
 
             logger.info("Generating conclusion...")
             conclusion_prompt = self.create_conclusion_prompt(subject, sections)
@@ -204,6 +211,7 @@ class PodcastGenerator:
                 logger.error("Failed to generate conclusion after 3 attempts")
                 return None
 
+            conclusion = {f"{section_number:03d}_{list(conclusion.keys())[0]}": list(conclusion.values())[0]}
             full_script.update(conclusion)
 
 
