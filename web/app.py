@@ -54,7 +54,8 @@ async def root(request: Request):
 
 @app.get("/audio/{user_id}/{podcast_id}")
 async def get_audio(user_id: str, podcast_id: str):
-    async with httpx.AsyncClient() as client:
+    timeout = 120.0
+    async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(f'{API_URL}/api/get_audio', json={"user_id": user_id, "podcast_id": podcast_id})
         response.raise_for_status()
         audio_data = response.content
