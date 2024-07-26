@@ -4,11 +4,13 @@
 __pycache__*
 .venv
 ollama.py
-voices/
 script.json
 
+
+# For TTS
 tts/data/*
 tts/podcasts/*
+tts/voices
 
 # For test
 !tts/data/123/whales.json

@@ -69,7 +69,6 @@ async def generate_script(
 
         # Standardize script format
         standardized_script = standardize_script_format(script)
-        logger.info(f"{standardized_script}")
 
         # Save script to Firebase Storage
         await firebase_storage.save_podcast(request.user_id, podcast_id, standardized_script)

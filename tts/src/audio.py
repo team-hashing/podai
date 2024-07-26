@@ -15,9 +15,15 @@ logger = logging.getLogger("uvicorn")
 firebase_storage = FirebaseStorage()
 
 voices_folder = 'voices/'
+"""
 voices = {
     "male": (voices_folder + "en_US-libritts-high.onnx", voices_folder + "en_US-libritts-high.onnx.json"),
     "female": (voices_folder + "en_GB-northern_english_male-medium.onnx", voices_folder + "en_GB-northern_english_male-medium.onnx.json")
+}
+"""
+voices = {
+    "male": (voices_folder + "male.onnx", voices_folder + "male.json"),
+    "female": (voices_folder + "female.onnx", voices_folder + "female.json")
 }
 
 def get_audio_files(user_id: str, podcast_id: str) -> List[BytesIO]:
