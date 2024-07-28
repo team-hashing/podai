@@ -1,3 +1,4 @@
+import datetime
 import os
 import json
 from typing import Dict, List, Optional
@@ -29,14 +30,16 @@ class FirebaseStorage:
         self.bucket = storage.bucket()
         self.db = firestore.client()
 
+        # get all elements from collection podcasts and add update them so they inlcude the fields (if they dont have them already) "likes: 0" and "liked_by: []", 
+        # created_at: timestamp (1 of january of 1970), druration: 1000
+        podcasts = self.db.collection('podcasts').stream()
+
     async def save_podcast(self, user_id: str, podcast_id: str, script_content: Dict):
         """Save podcast details to Firestore"""
         try:
             doc_ref = self.db.collection('podcasts').document(podcast_id)
-            doc_ref.set({
-                'user_id': user_id,
+            doc_ref.update({
                 'script': script_content,
-                'name': "temp_name"
             })
             logger.info(f'Podcast saved for ID: {podcast_id}')
         except Exception as e:

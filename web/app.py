@@ -79,7 +79,6 @@ async def generate_podcast(request: PodcastGenerationRequest):
         "subject": request.subject,
         "podcast_name": request.name
     }
-
     # Set a 90-minute timeout
     timeout = Timeout(90.0 * 60)
 

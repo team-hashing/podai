@@ -1,6 +1,7 @@
 from io import BytesIO
 import os
 import json
+from uuid import uuid4
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -10,6 +11,7 @@ from typing import Dict, List
 import logging
 from colorama import Fore, Style
 from src.storage import firebase_storage
+import asyncio
 
 app = FastAPI()
 
@@ -146,73 +148,87 @@ async def get_image(body: RequestBody):
     return {"image_url": image_url}
 
 
+
+
 @app.post("/api/generate_podcast")
 async def generate_podcast(body: GeneratePodcastRequest):
     logger.info("Generating podcast")
 
     if not body.podcast_name:
         body.podcast_name = body.subject
+    
+    podcast_id = str(uuid4())
 
     # Generate script
     script_payload = {
         "user_id": body.user_id,
         "subject": body.subject,
+        "podcast_id": podcast_id
     }
+    await firebase_storage.save_podcast(body.user_id, podcast_id, body.podcast_name, body.subject)
 
-    async with httpx.AsyncClient(timeout=1200.0) as client:  # Set timeout to 1200 seconds (20 minutes)
-        try:
-            script_response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=script_payload)
+    # Return ok but continue with this function
+    response = {"podcast_id": podcast_id}
+    logger.info("Podcast saved to Firestore")
 
-        except httpx.TimeoutException:
-            logger.error("The request to the gemini service timed out")
-            raise HTTPException(status_code=504, detail="The request to the gemini service timed out")
+    async def continue_execution():
+        async with httpx.AsyncClient(timeout=1200.0) as client:  # Set timeout to 1200 seconds (20 minutes)
+            try:
+                script_response = await client.post(f"http://{config.GEMINI_IP}:{config.GEMINI_Port}/generate_script", json=script_payload)
+
+            except httpx.TimeoutException:
+                logger.error("The request to the gemini service timed out")
+                raise HTTPException(status_code=504, detail="The request to the gemini service timed out")
+            
+            except httpx.RequestError as exc:
+                logger.error(f"An error occurred while requesting the script: {exc}")
+                raise HTTPException(status_code=500, detail="Error communicating with the TTS service")
+
+        if script_response.status_code != 200:
+            logger.error(f"Unable to generate script: {script_response.status_code}")
+            raise HTTPException(status_code=script_response.status_code, detail="Error generating script")
+
+        podcast_id = script_response.json().get("podcast_id")
+        if not podcast_id:
+            logger.error("podcast_id not found in response")
+            raise HTTPException(status_code=500, detail="Script ID not found")
         
-        except httpx.RequestError as exc:
-            logger.error(f"An error occurred while requesting the script: {exc}")
-            raise HTTPException(status_code=500, detail="Error communicating with the TTS service")
+        logger.info("Script generated successfully")
 
-    if script_response.status_code != 200:
-        logger.error(f"Unable to generate script: {script_response.status_code}")
-        raise HTTPException(status_code=script_response.status_code, detail="Error generating script")
+        # Firebase
+        firebase_storage.save_podcast_name(podcast_id, body.podcast_name, body.subject)
+        logger.info("Podcast name saved to Firebase")
 
-    podcast_id = script_response.json().get("podcast_id")
-    if not podcast_id:
-        logger.error("podcast_id not found in response")
-        raise HTTPException(status_code=500, detail="Script ID not found")
-    
-    logger.info("Script generated successfully")
+        # Generate audio
+        logger.info("Generating audio")
+        audio_payload = {
+            "user_id": body.user_id,
+            "podcast_name": body.podcast_name,
+            "podcast_id": podcast_id,
+        }
 
-    # Firebase
-    firebase_storage.save_podcast_name(podcast_id, body.podcast_name, body.subject)
-    logger.info("Podcast name saved to Firebase")
+        async with httpx.AsyncClient(timeout=1200.0) as client:
+            try:
+                audio_response = await client.post(f"http://{config.TTS_IP}:{config.TTS_Port}/api/audio", json=audio_payload)
 
-    # Generate audio
-    logger.info("Generating audio")
-    audio_payload = {
-        "user_id": body.user_id,
-        "podcast_name": body.podcast_name,
-        "podcast_id": podcast_id,
-    }
+            except httpx.TimeoutException:
+                logger.error("The request to the TTS service timed out")
+                raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
+            
+            except httpx.RequestError as exc:
+                logger.error(f"An error occurred while requesting audio: {exc}")
+                raise HTTPException(status_code=500, detail="Error communicating with TTS service")
 
-    async with httpx.AsyncClient(timeout=1200.0) as client:
-        try:
-            audio_response = await client.post(f"http://{config.TTS_IP}:{config.TTS_Port}/api/audio", json=audio_payload)
+        if audio_response.status_code != 200:
+            logger.error(f"Received non-OK response from audio generation: {audio_response.status_code}")
+            raise HTTPException(status_code=audio_response.status_code, detail="Error generating audio")
 
-        except httpx.TimeoutException:
-            logger.error("The request to the TTS service timed out")
-            raise HTTPException(status_code=504, detail="The request to the TTS service timed out")
-        
-        except httpx.RequestError as exc:
-            logger.error(f"An error occurred while requesting audio: {exc}")
-            raise HTTPException(status_code=500, detail="Error communicating with TTS service")
+        logger.info("Audio generated successfully")
 
-    if audio_response.status_code != 200:
-        logger.error(f"Received non-OK response from audio generation: {audio_response.status_code}")
-        raise HTTPException(status_code=audio_response.status_code, detail="Error generating audio")
+    # Start the background task
+    asyncio.create_task(continue_execution())
 
-    logger.info("Audio generated successfully")
-    return {"podcast_id": podcast_id}
-
+    return response
 
 class AudioRequest(BaseModel):
     podcast_id: str

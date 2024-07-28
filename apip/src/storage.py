@@ -28,10 +28,30 @@ class FirebaseStorage:
         self.bucket = storage.bucket()
         self.db = firestore.client()
 
+        # inside storage, in podcast folder, check the duration of every audio.wav
+    
+    async def save_podcast(self, user_id: str, podcast_id: str, name: str, subject: str):
+        """Save podcast details to Firestore"""
+        try:
+            doc_ref = self.db.collection('podcasts').document(podcast_id)
+            now = datetime.datetime.now()
+            doc_ref.set({
+                'user_id': user_id,
+                'script': "",
+                'name': "temp_name",
+                'likes': 0,
+                'liked_by': [],
+                'created_at': now.timestamp(),
+                'duration': 10000,
+                'status': 'empty'
+            })
+        except Exception as e:
+            raise
+
     def save_podcast_name(self, podcast_id: str, podcast_name: str, podcast_subject: str):
         """Save podcast name to Firestore"""
         doc_ref = self.db.collection('podcasts').document(podcast_id)
-        doc_ref.update({'name': podcast_name, 'subject': podcast_subject})
+        doc_ref.update({'name': podcast_name, 'subject': podcast_subject, 'status': 'script done'})
 
     def get_podcast_name(self, podcast_id: str) -> str:
         """Get podcast name from Firestore"""

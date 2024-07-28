@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 class PodcastRequest(BaseModel):
     subject: str = Field(..., min_length=3, max_length=200)
     user_id: str = Field(..., min_length=1)
+    podcast_id: str = Field(..., min_length=1)
 
 class ScriptResponse(BaseModel):
     message: str
@@ -65,7 +66,7 @@ async def generate_script(
             raise ValueError("Script generation failed")
 
         # Generate script ID
-        podcast_id = str(uuid4())
+        podcast_id = request.podcast_id
 
         # Standardize script format
         standardized_script = standardize_script_format(script)
