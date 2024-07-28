@@ -140,6 +140,9 @@ class FirebaseStorage:
         for doc in docs:
             podcast = doc.to_dict()
             podcast['id'] = doc.id
+            podcasts.append(podcast)
+        
+        return podcasts
 
 # Create a global instance of FirebaseStorage
 firebase_storage = FirebaseStorage()
