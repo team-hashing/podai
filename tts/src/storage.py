@@ -35,6 +35,11 @@ class FirebaseStorage:
         blob = self.bucket.blob(f'podcasts/{podcast_id}/audio.wav')
         blob.upload_from_string(audio_data, content_type='audio/wav')
 
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc_ref.update({
+            'status': 'ready'
+        })
+
     def get_audio(self, user_id: str, podcast_id: str) -> bytes:
         # Crear la ruta del blob con la estructura deseada
         blob = self.bucket.blob(f'podcasts/{podcast_id}/audio.wav')
