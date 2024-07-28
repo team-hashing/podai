@@ -113,6 +113,12 @@ async def get_podcasts_from_user(body: GetPocastsRequest):
     podcasts = firebase_storage.get_user_podcasts(body.user_id)
     return podcasts
 
+@app.post("/api/podcasts_by_likes")
+async def get_podcasts_by_likes(body: GetPocastsRequest):
+    logger.info("Getting podcasts by likes")
+    podcasts = firebase_storage.get_podcasts_by_likes()
+    return podcasts
+
 @app.post("/api/get_audio")
 async def get_audio(body: RequestBody):
     logger.info("Getting audio")

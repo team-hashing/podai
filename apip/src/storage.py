@@ -132,6 +132,14 @@ class FirebaseStorage:
             podcast['id'] = doc.id  # Add the document ID to the podcast dictionary
             podcasts.append(podcast)
         return podcasts
+    
+    def get_podcasts_by_likes(self, user_id: str) -> List[Dict[str, str]]:
+        """List all podcasts ordered by likes"""
+        docs = self.db.collection('podcasts').order_by('likes', direction=firestore.Query.DESCENDING).stream()
+        podcasts = []
+        for doc in docs:
+            podcast = doc.to_dict()
+            podcast['id'] = doc.id
 
 # Create a global instance of FirebaseStorage
 firebase_storage = FirebaseStorage()
