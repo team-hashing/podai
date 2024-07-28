@@ -68,3 +68,4 @@ websockets==12.0
 yacman==0.9.3
 firebase-admin 
 google-cloud-firestore
+pydub

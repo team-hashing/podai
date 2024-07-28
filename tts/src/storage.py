@@ -5,6 +5,8 @@ from firebase_admin import credentials, storage, firestore
 from google.cloud.exceptions import NotFound
 import json
 import os
+from pydub import AudioSegment
+from io import BytesIO
 
 FIREBASE_KEY = os.environ.get('FIREBASE_KEY')
 STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET')
@@ -35,9 +37,16 @@ class FirebaseStorage:
         blob = self.bucket.blob(f'podcasts/{podcast_id}/audio.wav')
         blob.upload_from_string(audio_data, content_type='audio/wav')
 
+        # Calcular la duración del audio
+        audio = AudioSegment.from_wav(BytesIO(audio_data))
+        duration = len(audio) / 1000.0  # Duración en segundos
+
         doc_ref = self.db.collection('podcasts').document(podcast_id)
+
+        # Actualizar el documento con la duración del audio
         doc_ref.update({
-            'status': 'ready'
+            'status': 'ready',
+            'duration': duration
         })
 
     def get_audio(self, user_id: str, podcast_id: str) -> bytes:
