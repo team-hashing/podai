@@ -116,7 +116,7 @@ async def get_podcasts_from_user(body: GetPocastsRequest):
 @app.post("/api/podcasts_by_likes")
 async def get_podcasts_by_likes(body: GetPocastsRequest):
     logger.info("Getting podcasts by likes")
-    podcasts = firebase_storage.get_podcasts_by_likes()
+    podcasts = firebase_storage.get_podcasts_by_likes(body.user_id)
     return podcasts
 
 @app.post("/api/get_audio")
