@@ -38,7 +38,8 @@ class FirebaseStorage:
             doc_ref.set({
                 'user_id': user_id,
                 'script': "",
-                'name': "temp_name",
+                'name': name,
+                'subject': subject,
                 'likes': 0,
                 'liked_by': [],
                 'created_at': now.timestamp(),
