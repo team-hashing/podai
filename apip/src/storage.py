@@ -144,6 +144,112 @@ class FirebaseStorage:
             podcasts.append(podcast)
         
         return podcasts
+    
+    def get_username_from_id(self, user_id: str) -> str:
+        """Get username from Firestore"""
+        doc_ref = self.db.collection('users').document(user_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()['username']
+        return "unknown"
+    
+    def get_user_info(self, user_id: str) -> Dict:
+        """Get user information from Firestore"""
+
+        # get user info
+        info = {}
+        doc_ref = self.db.collection('users').document(user_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            info = doc.to_dict()
+        
+        # get image if exists
+        try:
+            blob = self.bucket.blob(f'users/{user_id}/image.png')
+            info['image'] = blob.generate_signed_url(expiration=datetime.timedelta(hours=1))
+        except NotFound:
+            info['image'] = None
+        
+        return info
+    
+    def like_podcast(self, user_id: str, podcast_id: str):
+        """Like a podcast"""
+
+        # podcasts database
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            podcast = doc.to_dict()
+            if user_id not in podcast['liked_by']:
+                podcast['liked_by'].append(user_id)
+                podcast['likes'] = len(podcast['liked_by'])
+                doc_ref.update(podcast)
+        
+        # users database
+        doc_ref = self.db.collection('users').document(user_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            user = doc.to_dict()
+            if podcast_id not in user['liked_podcasts']:
+                user['liked_podcasts'].append(podcast_id)
+                doc_ref.update(user)
+
+
+    def unlike_podcast(self, user_id: str, podcast_id: str):
+        """Unlike a podcast"""
+
+        # podcasts database
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            podcast = doc.to_dict()
+            if user_id in podcast['liked_by']:
+                podcast['liked_by'].remove(user_id)
+                podcast['likes'] = len(podcast['liked_by'])
+                doc_ref.update(podcast)
+        
+        # users database
+        doc_ref = self.db.collection('users').document(user_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            user = doc.to_dict()
+            if podcast_id in user['liked_podcasts']:
+                user['liked_podcasts'].remove(podcast_id)
+                doc_ref.update(user)
+    
+    def get_liked_podcasts(self, user_id: str) -> List[Dict[str, str]]:
+        """Get all podcasts liked by a user"""
+        docs = self.db.collection('podcasts').where('liked_by', 'array_contains', user_id).stream()
+        podcasts = []
+        for doc in docs:
+            podcast = doc.to_dict()
+            podcast['id'] = doc.id
+            podcasts.append(podcast)
+        return podcasts
+    
+    def use_token(self, user_id: str) -> bool:
+        """Use a token to generate a podcast"""
+        doc_ref = self.db.collection('users').document(user_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            user = doc.to_dict()
+            if user['tokens'] > 0:
+                user['tokens'] -= 1
+                doc_ref.update(user)
+                return True
+        return False
+    
+    def create_user(self, user_id: str, username: str):
+        """Create a new user"""
+        doc_ref = self.db.collection('users').document(user_id)
+        doc_ref.set({
+            'username': username,
+            'tokens': 5,
+            'liked_podcasts': []
+        })
+
+
+
 
 # Create a global instance of FirebaseStorage
 firebase_storage = FirebaseStorage()

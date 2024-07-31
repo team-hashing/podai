@@ -76,6 +76,9 @@ class RequestBody(BaseModel):
     user_id: str
     podcast_id: str
 
+class UserRequest(BaseModel):
+    user_id: str
+
 class GetPocastsRequest(BaseModel):
     user_id: str
 
@@ -88,6 +91,10 @@ class GeneratePodcastRequest(BaseModel):
     user_id: str
     subject: str
     podcast_name: str
+
+class UserCreateRequest(BaseModel):
+    username: str
+    user_id: str
 
 # Global variables
 items: List[Item] = []
@@ -163,6 +170,11 @@ async def generate_podcast(body: GeneratePodcastRequest):
     if not body.podcast_name:
         body.podcast_name = body.subject
     
+    # Check if enough tokens
+    if not firebase_storage.use_token(body.user_id):
+        logger.error("Not enough tokens")
+        raise HTTPException(status_code=403, detail="Not enough tokens")
+
     podcast_id = str(uuid4())
 
     # Generate script
@@ -174,7 +186,8 @@ async def generate_podcast(body: GeneratePodcastRequest):
     await firebase_storage.save_podcast(body.user_id, podcast_id, body.podcast_name, body.subject)
 
     # Return ok but continue with this function
-    response = {"podcast_id": podcast_id}
+    username = firebase_storage.get_username_from_id(body.user_id)
+    response = {"podcast_id": podcast_id, "username": username}
     logger.info("Podcast saved to Firestore")
 
     async def continue_execution():
@@ -272,6 +285,37 @@ async def generate_audio(body: AudioRequest):
 
     logger.info("Audio generated successfully")
     return {"podcast_id": podcast_id}
+
+@app.post("/api/like_podcast")
+async def like_podcast(body: RequestBody):
+    logger.info("Liking podcast")
+    firebase_storage.like_podcast(body.user_id, body.podcast_id)
+    return {"message": "Podcast liked successfully"}
+
+@app.post("/api/unlike_podcast")
+async def unlike_podcast(body: RequestBody):
+    logger.info("Unliking podcast")
+    firebase_storage.unlike_podcast(body.user_id, body.podcast_id)
+    return {"message": "Podcast unliked successfully"}
+
+@app.post("/api/get_liked_podcasts")
+async def get_liked_podcasts(body: RequestBody):
+    logger.info("Getting liked podcasts")
+    podcasts = firebase_storage.get_liked_podcasts(body.user_id)
+    return podcasts
+
+@app.post("/api/get_user_info")
+async def get_user_info(body: UserRequest):
+    logger.info("Getting user info")
+    user_info = firebase_storage.get_user_info(body.user_id)
+    return user_info
+
+
+@app.post("/api/create_user")
+async def create_user(body: UserCreateRequest):
+    logger.info("Creating user")
+    firebase_storage.create_user(body.username, body.user_id)
+    return {"message": "User created"}
 
 if __name__ == "__main__":
     import uvicorn
