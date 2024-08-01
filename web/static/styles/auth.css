@@ -1,0 +1,71 @@
+/* login and signup */
+/* Color Variables */
+:root {
+    --background-color: #ffffff;
+    --primary-color: #800080;
+    --input-border-color: #ddd;
+    --input-focus-border-color: #800080;
+    --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
+    --container-shadow-color: rgba(0, 0, 0, 0.1);
+    --button-text-color: #fff;
+}
+
+/* General Styles */
+body {
+    background-color: var(--background-color);
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px var(--container-shadow-color);
+    padding: 20px;
+    width: 300px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.title {
+    font-size: 24px;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    position: relative;
+    animation: fadeIn 2s ease-in-out;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+}
+
+.input {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid var(--input-border-color);
+    border-radius: 5px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input:focus {
+    border-color: var(--input-focus-border-color);
+    box-shadow: 0 0 8px var(--input-focus-shadow-color);
+    outline: none;
+    animation: pulse 1s infinite;
+}
+
+.button {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+}

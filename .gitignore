@@ -22,6 +22,7 @@ gemini/.venv
 !gemini/requirements.txt
 google-key.json
 firebase-key.json
+google-services.json
 
 # Data
 data/

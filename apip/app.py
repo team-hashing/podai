@@ -314,7 +314,7 @@ async def get_user_info(body: UserRequest):
 @app.post("/api/create_user")
 async def create_user(body: UserCreateRequest):
     logger.info("Creating user")
-    firebase_storage.create_user(body.username, body.user_id)
+    firebase_storage.create_user(body.user_id, body.username)
     return {"message": "User created"}
 
 if __name__ == "__main__":
