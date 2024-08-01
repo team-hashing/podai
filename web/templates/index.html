@@ -41,17 +41,30 @@
                 <h2 class="section-title">Featured Podcasts</h2>
                 <div class="podcast-grid">
                     {% for podcast in podcasts %}
-                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                    {% if podcast.status and podcast.status != "ready" %}
+                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
                         <div class="podcast-image-container">
-                            <img src="{{ podcast.image }}" alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="podcast-overlay">
-                                <button class="play-button">▶</button>
-                            </div>
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="loading-spinner"></div>
                         </div>
                         <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="podcast-overlay">
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
             </section>
         </main>
         <footer class="app-footer">

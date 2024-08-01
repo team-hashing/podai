@@ -1,17 +1,20 @@
 :root {
-    --background-color: #fffbe8;
+    --background-color: #FFF;
     --primary-color: #800080;
+    --secondary-color: #AA3090;
     --input-border-color: #ddd;
     --input-focus-border-color: #800080;
     --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
     --container-shadow-color: rgba(0, 0, 0, 0.1);
     --text-color: #7c027c;
-    --card-background: #181818;
+    --card-background: #EEE;
     --hover-background: rgba(192, 0, 209, 0.2);
     --semi-transparent: rgba(0, 0, 0, 0.8);
     --semi-transparent2: rgba(0, 0, 0, 0.2);
     --semi-transparent3: rgba(0, 0, 0, 0.5);
     --button-text-color: #fff;
+
+    --footer-color: #FFF;
 }
 
 
@@ -38,11 +41,12 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background-color: var(--background-color)
+    background-color: var(--background-color);
     backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
     z-index: 100;
+    box-shadow: 0 1px 2px var(--semi-transparent2);
 }
 
 .logo {
@@ -134,7 +138,7 @@ body {
 
 .play-button {
     background-color: var(--primary-color);
-    color: var(--text-color);
+    color: var(--button-text-color);
     border: none;
     border-radius: 50%;
     width: 50px;
@@ -147,6 +151,7 @@ body {
     justify-content: center;
     align-items: center;
     padding-left: 3px;
+    padding-bottom: 4px;
 }
 
 .play-button:hover {
@@ -160,7 +165,7 @@ body {
 }
 
 .app-footer {
-    background-color: var(--semi-transparent);
+    background-color: var(--footer-color);
     text-align: center;
     padding: 1rem;
     font-size: 0.9rem;
@@ -227,7 +232,6 @@ body {
     right: 20px;
 }
 
-/* Add these new styles */
 .generate-podcast-btn {
     position: fixed;
     left: 20px;
@@ -244,7 +248,7 @@ body {
 }
 
 .generate-podcast-btn:hover {
-    background-color: var(--primary-color);
+    background-color: var(--secondary-color);
 }
 
 .generate-podcast-menu {
@@ -282,13 +286,13 @@ body {
 
 .generate-podcast-menu button {
     background-color: var(--primary-color);
-    color: var(--text-color);
+    color: var(--button-text-color);
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
 .generate-podcast-menu button:hover {
-    background-color: var(--primary-color);
+    background-color: var(--secondary-color);
 }
 
 .podcast-card.loading {
@@ -314,17 +318,27 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--primary-color);
-    border-top: 3px solid var(--text-color);
-    border-radius: 50%;
+    width: 30px; /* Width of the semi-circle */
+    height:30px; /* Height of the semi-circle */
+    border: 1px solid var(--primary-color);
+    border-top: 1px solid var(--text-color);
+    border-bottom: none; /* Remove the bottom border */
+    border-radius: 30px 30px 0 0; /* Create a semi-circle */
+    transform-origin: center; /* Ensure rotation is around the center */
     animation: spin 1s linear infinite;
-    z-index: 1;
+    z-index: 10;
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid var(--primary-color); /* Blue */
+    border-radius: 50%;
 }
 
+/* Keyframes for the spin animation */
 @keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes spin-half {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
 }

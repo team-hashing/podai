@@ -16,15 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const playButton = card.querySelector('.play-button');
-        playButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            const podcastId = card.dataset.podcastId;
-            const podcastName = card.querySelector('.podcast-title').textContent;
-            const podcastImage = card.querySelector('.podcast-image').src;
-            playPodcast(podcastId, podcastName, podcastImage);
-        });
+        if (playButton) {
+            playButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                const podcastId = card.dataset.podcastId;
+                const podcastName = card.querySelector('.podcast-title').textContent;
+                const podcastImage = card.querySelector('.podcast-image').src;
+                playPodcast(podcastId, podcastName, podcastImage);
+            });
+        }
     });
-    
+    console.log('loaded');
+
     async function playPodcast(podcastId, podcastName, podcastImage) {
         try {
             // Extract userId from cookies
@@ -83,7 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const closeMenuBtn = document.getElementById('close-menu-btn');
 
+
     generatePodcastBtn.addEventListener('click', () => {
+        console.log('clicked');
         generatePodcastMenu.classList.add('active');
     });
 
@@ -162,13 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const playButton = card.querySelector('.play-button');
-        playButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            const podcastId = card.dataset.podcastId;
-            const podcastName = card.querySelector('.podcast-title').textContent;
-            const podcastImage = card.querySelector('.podcast-image').src;
-            playPodcast(podcastId, podcastName, podcastImage);
-        });
+        if (playButton) {
+            playButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                const podcastId = card.dataset.podcastId;
+                const podcastName = card.querySelector('.podcast-title').textContent;
+                const podcastImage = card.querySelector('.podcast-image').src;
+                playPodcast(podcastId, podcastName, podcastImage);
+            });
+        }
     }
 
     function addNewPodcastCard(podcast) {

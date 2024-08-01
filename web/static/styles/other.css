@@ -1,0 +1,17 @@
+:root {
+    --background-color: #fffbe8;
+    --primary-color: #800080;
+    --input-border-color: #ddd;
+    --input-focus-border-color: #800080;
+    --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
+    --container-shadow-color: rgba(0, 0, 0, 0.1);
+    --text-color: #7c027c;
+    --card-background: #181818;
+    --hover-background: rgba(192, 0, 209, 0.2);
+    --semi-transparent: rgba(0, 0, 0, 0.8);
+    --semi-transparent2: rgba(0, 0, 0, 0.2);
+    --semi-transparent3: rgba(0, 0, 0, 0.5);
+    --button-text-color: #fff;
+
+    --footer-color: #AAA;
+}

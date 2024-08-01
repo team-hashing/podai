@@ -49,10 +49,13 @@ auth = firebase.auth()
 
 security = HTTPBearer()
 
+
 class Podcast(BaseModel):
     id: str
     name: str
     image: str
+    status: str = "ready"
+
 
 async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -65,6 +68,7 @@ async def get_current_user(token: HTTPAuthorizationCredentials = Depends(securit
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+
 @app.get("/login")
 async def login_page(request: Request):
     token = request.cookies.get("access_token")
@@ -72,17 +76,20 @@ async def login_page(request: Request):
         return RedirectResponse(url="/")
     return templates.TemplateResponse("login.html", {"request": request})
 
+
 @app.post("/login")
 async def login(request: Request, email: str = Form(...), password: str = Form(...)):
     token = request.cookies.get("access_token")
     if token:
         return RedirectResponse(url="/")
-    
+
     try:
         user = auth.sign_in_with_email_and_password(email, password)
         id_token = user['idToken']
         response = RedirectResponse(url="/")
         response.set_cookie(key="access_token", value=id_token, httponly=True)
+        response.set_cookie(
+            key="user_id", value=user['localId'], httponly=False)
         logger.info(f"User {email} logged in")
         return response
     except:
@@ -92,9 +99,11 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+
 @app.get("/signup")
 async def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
 
 @app.post("/signup")
 async def signup(username: str = Form(...), email: str = Form(...), password: str = Form(...)):
@@ -103,8 +112,6 @@ async def signup(username: str = Form(...), email: str = Form(...), password: st
         user = auth.create_user_with_email_and_password(email, password)
         id_token = user['idToken']
         logger.info(f"User {email} signed up")
-        logger.info(f"AAAAAAAAAAAAAAAAAAAAAAAAAA {user}")
-
 
         # Register user in the main app
         async with httpx.AsyncClient() as client:
@@ -116,7 +123,8 @@ async def signup(username: str = Form(...), email: str = Form(...), password: st
         response = RedirectResponse(url="/")
         response.set_cookie(key="access_token", value=id_token, httponly=True)
         # Set a cookie with the user's id
-        response.set_cookie(key="user_id", value=user['localId'], httponly=True)
+        response.set_cookie(
+            key="user_id", value=user['localId'], httponly=False)
         return response
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error occurred: {e}")
@@ -133,28 +141,42 @@ async def signup(username: str = Form(...), email: str = Form(...), password: st
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+
 @app.get("/logout")
 async def logout(request: Request):
     response = RedirectResponse(url="/login")
     response.delete_cookie(key="access_token")
+    response.delete_cookie(key="user_id")
     return response
 
 
 @app.post("/")
 async def root_post(request: Request):
     token = request.cookies.get("access_token")
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
     async with httpx.AsyncClient() as client:
         # Send a POST request to the scripts API
-        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": "user1"})
+        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": user_id})
         response.raise_for_status()
         podcasts_data = response.json()
 
-        podcasts = [Podcast(id=data['id'], name=data['name'],
-                            image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+        podcasts = [
+            Podcast(
+                id=data['id'],
+                name=data['name'],
+                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                status=data.get('status', 'ready')
+            )
+            for data in podcasts_data
+        ]
 
         # get images for each podcast
         for podcast in podcasts:
-            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
@@ -165,21 +187,33 @@ async def root_post(request: Request):
 @app.get("/")
 async def root(request: Request):
     token = request.cookies.get("access_token")
+    user_id = request.cookies.get("user_id")
     if not token:
+        logger.info("User not logged in")
         return RedirectResponse(url="/login")
-    
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
     async with httpx.AsyncClient() as client:
         # Send a POST request to the scripts API
-        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": "user1"})
+        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": user_id})
         response.raise_for_status()
         podcasts_data = response.json()
 
-        podcasts = [Podcast(id=data['id'], name=data['name'],
-                            image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+        podcasts = [
+            Podcast(
+                id=data['id'],
+                name=data['name'],
+                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                status=data.get('status', 'ready')
+            )
+            for data in podcasts_data
+        ]
 
         # get images for each podcast
         for podcast in podcasts:
-            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
@@ -192,7 +226,8 @@ async def get_audio(request: Request, podcast_id: str):
     # Extract user_id from cookies
     user_id = request.cookies.get("user_id")
     if not user_id:
-        raise HTTPException(status_code=400, detail="User ID not found in cookies")
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
 
     timeout = 120.0
     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -205,7 +240,6 @@ async def get_audio(request: Request, podcast_id: str):
             return StreamingResponse(iter([audio_data]), media_type="audio/mpeg")
 
 
-
 class PodcastGenerationRequest(BaseModel):
     name: str
     subject: str
@@ -216,7 +250,8 @@ async def generate_podcast(request: Request, podcast_request: PodcastGenerationR
     # Extract user_id from cookies
     user_id = request.cookies.get("user_id")
     if not user_id:
-        raise HTTPException(status_code=400, detail="User ID not found in cookies")
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
 
     # Define the payload for the podcast generation API
     payload = {
