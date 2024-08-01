@@ -1,10 +1,19 @@
 :root {
-    --primary-color: #1db954;
-    --background-color: #121212;
-    --text-color: #ffffff;
+    --background-color: #fffbe8;
+    --primary-color: #800080;
+    --input-border-color: #ddd;
+    --input-focus-border-color: #800080;
+    --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
+    --container-shadow-color: rgba(0, 0, 0, 0.1);
+    --text-color: #7c027c;
     --card-background: #181818;
-    --hover-background: #282828;
+    --hover-background: rgba(192, 0, 209, 0.2);
+    --semi-transparent: rgba(0, 0, 0, 0.8);
+    --semi-transparent2: rgba(0, 0, 0, 0.2);
+    --semi-transparent3: rgba(0, 0, 0, 0.5);
+    --button-text-color: #fff;
 }
+
 
 * {
     margin: 0;
@@ -29,7 +38,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--background-color)
     backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
@@ -85,7 +94,7 @@ body {
 
 .podcast-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 20px var(--semi-transparent2);
 }
 
 .podcast-image-container {
@@ -111,7 +120,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--semi-transparent3);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -151,7 +160,7 @@ body {
 }
 
 .app-footer {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--semi-transparent);
     text-align: center;
     padding: 1rem;
     font-size: 0.9rem;
@@ -167,7 +176,7 @@ body {
     border-radius: 10px 0 0 10px;
     padding: 1rem;
     transition: right 0.3s ease;
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+    box-shadow: -5px 0 15px var(--semi-transparent2);
 }
 
 .audio-player.active {
@@ -225,7 +234,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     background-color: var(--primary-color);
-    color: var(--text-color);
+    color: var(--button-text-color);
     border: none;
     padding: 10px 20px;
     border-radius: 25px;
@@ -235,7 +244,7 @@ body {
 }
 
 .generate-podcast-btn:hover {
-    background-color: #1ed760;
+    background-color: var(--primary-color);
 }
 
 .generate-podcast-menu {
@@ -279,59 +288,9 @@ body {
 }
 
 .generate-podcast-menu button:hover {
-    background-color: #1ed760;
+    background-color: var(--primary-color);
 }
 
-/*
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.loading-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.loading-spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid var(--primary-color);
-    border-top: 5px solid var(--text-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.podcast-card.loading {
-    opacity: 0.7;
-}
-
-.podcast-card .loading-spinner {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 30px;
-    height: 30px;
-    border-width: 3px;
-}
-*/
 .podcast-card.loading {
     position: relative;
     opacity: 0.7;
@@ -344,7 +303,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--semi-transparent3);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -386,4 +345,3 @@ body {
     color: var(--primary-color);
 }
 
-w

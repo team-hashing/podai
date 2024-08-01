@@ -187,8 +187,13 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts, "token": token})
 
 
-@app.get("/audio/{user_id}/{podcast_id}")
-async def get_audio(user_id: str, podcast_id: str):
+@app.get("/audio/{podcast_id}")
+async def get_audio(request: Request, podcast_id: str):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID not found in cookies")
+
     timeout = 120.0
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(f'{API_URL}/api/get_audio', json={"user_id": user_id, "podcast_id": podcast_id})
@@ -207,12 +212,17 @@ class PodcastGenerationRequest(BaseModel):
 
 
 @app.post("/generate-podcast")
-async def generate_podcast(request: PodcastGenerationRequest):
+async def generate_podcast(request: Request, podcast_request: PodcastGenerationRequest):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID not found in cookies")
+
     # Define the payload for the podcast generation API
     payload = {
-        "user_id": "user1",
-        "subject": request.subject,
-        "podcast_name": request.name
+        "user_id": user_id,
+        "subject": podcast_request.subject,
+        "podcast_name": podcast_request.name
     }
     # Set a 90-minute timeout
     timeout = Timeout(90.0 * 60)
@@ -225,18 +235,6 @@ async def generate_podcast(request: PodcastGenerationRequest):
                 status_code=response.status_code, detail=response.text)
         podcast_data = response.json()
 
-    # Create a new Podcast object
-    # new_podcast = Podcast(
-    #     id=podcast_data['podcast_id'],
-    #     name=request.name,
-    #     image=f'https://picsum.photos/seed/{request.name}/200'
-    # )
-
-    # Get the updated list of podcasts
-    # podcasts = await get_podcasts()
-    # podcasts.append(new_podcast)
-
-    # return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts})
     return {"message": "Podcast generated successfully"}
 
 

@@ -24,11 +24,23 @@ document.addEventListener('DOMContentLoaded', () => {
             playPodcast(podcastId, podcastName, podcastImage);
         });
     });
-
+    
     async function playPodcast(podcastId, podcastName, podcastImage) {
         try {
-            const userId = 'user1'; // TODO Replace with actual user ID when you have user authentication
-            const response = await fetch(`/audio/${userId}/${podcastId}`);
+            // Extract userId from cookies
+            const getCookie = (name) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            };
+
+            const userId = getCookie('user_id');
+            if (!userId) {
+                showErrorNotification('User ID not found in cookies');
+                return;
+            }
+
+            const response = await fetch(`/audio/${podcastId}`);
             console.log(response);
             if (response.ok) {
                 const audioBlob = await response.blob();
@@ -210,44 +222,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-// login
-async function login(email, password) {
-    const response = await fetch('/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'email': email,
-            'password': password
-        })
-    });
-
-    if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.access_token);
-        // Redirect to main page or reload
-        window.location.href = '/';
-    } else {
-        // Handle login error
-        console.error('Login failed');
-    }
-}
-
-async function fetchProtectedData() {
-    const token = localStorage.getItem('token');
-    const response = await fetch('/some-protected-endpoint', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-
-    if (response.ok) {
-        const data = await response.json();
-        // Handle the data
-    } else if (response.status === 401) {
-        // Token is invalid or expired, redirect to login
-        window.location.href = '/login';
-    }
-}
