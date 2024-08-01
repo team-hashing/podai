@@ -299,7 +299,7 @@ async def unlike_podcast(body: RequestBody):
     return {"message": "Podcast unliked successfully"}
 
 @app.post("/api/get_liked_podcasts")
-async def get_liked_podcasts(body: RequestBody):
+async def get_liked_podcasts(body: GetPocastsRequest):
     logger.info("Getting liked podcasts")
     podcasts = firebase_storage.get_liked_podcasts(body.user_id)
     return podcasts

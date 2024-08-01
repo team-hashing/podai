@@ -2,6 +2,7 @@
     --background-color: #FFF;
     --primary-color: #800080;
     --secondary-color: #AA3090;
+    --terciary-color: #bbbbbb;
     --input-border-color: #ddd;
     --input-focus-border-color: #800080;
     --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
@@ -105,6 +106,12 @@ body {
     position: relative;
     aspect-ratio: 1 / 1;
     overflow: hidden;
+}
+
+.podcast-author {
+    font-size: 0.8rem;
+    color: var(--terciary-color);
+    margin-bottom: 0.5rem;
 }
 
 .podcast-image {

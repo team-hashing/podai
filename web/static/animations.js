@@ -22,13 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const podcastId = card.dataset.podcastId;
                 const podcastName = card.querySelector('.podcast-title').textContent;
                 const podcastImage = card.querySelector('.podcast-image').src;
-                playPodcast(podcastId, podcastName, podcastImage);
+                const podcastAuthor = card.querySelector('.podcast-author').textContent;
+                playPodcast(podcastId, podcastName, podcastImage, podcastAuthor);
             });
         }
     });
     console.log('loaded');
 
-    async function playPodcast(podcastId, podcastName, podcastImage) {
+    async function playPodcast(podcastId, podcastName, podcastImage, podcastAuthor) {
         try {
             // Extract userId from cookies
             const getCookie = (name) => {
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioElement.play();
                 currentPodcastImage.src = podcastImage;
                 currentPodcastTitle.textContent = podcastName;
-                currentPodcastAuthor.textContent = 'Podcast Author'; // TODO
+                currentPodcastAuthor.textContent = podcastAuthor;
                 audioPlayer.classList.add('active');
             } else {
                 showErrorNotification('Audio file not found');
@@ -173,7 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const podcastId = card.dataset.podcastId;
                 const podcastName = card.querySelector('.podcast-title').textContent;
                 const podcastImage = card.querySelector('.podcast-image').src;
-                playPodcast(podcastId, podcastName, podcastImage);
+                const podcastAuthor = card.querySelector('.podcast-author').textContent;
+                playPodcast(podcastId, podcastName, podcastImage, podcastAuthor);
             });
         }
     }

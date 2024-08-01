@@ -55,6 +55,7 @@ class Podcast(BaseModel):
     name: str
     image: str
     status: str = "ready"
+    author: str = "Unknown"
 
 
 async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
@@ -169,7 +170,8 @@ async def root_post(request: Request):
                 id=data['id'],
                 name=data['name'],
                 image=f'https://picsum.photos/seed/{data["name"]}/200',
-                status=data.get('status', 'ready')
+                status=data.get('status', 'ready'),
+                author=data.get('author', 'Unknown')
             )
             for data in podcasts_data
         ]
@@ -206,7 +208,8 @@ async def root(request: Request):
                 id=data['id'],
                 name=data['name'],
                 image=f'https://picsum.photos/seed/{data["name"]}/200',
-                status=data.get('status', 'ready')
+                status=data.get('status', 'ready'),
+                author=data.get('author', 'Unknown')
             )
             for data in podcasts_data
         ]
@@ -218,8 +221,59 @@ async def root(request: Request):
                 data = response.json()
                 podcast.image = data.get("image_url")
 
-    return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts, "token": token})
+        # Get podcasts by likes
+        response = await client.post(f'{API_URL}/api/podcasts_by_likes', json={"user_id": user_id})
+        response.raise_for_status()
+        podcasts_by_likes_data = response.json()
 
+        podcasts_by_likes = [
+            Podcast(
+                id=data['id'],
+                name=data['name'],
+                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                status=data.get('status', 'ready'),
+                author=data.get('author', 'Unknown')
+            )
+            for data in podcasts_by_likes_data
+        ]
+
+        # get images for each podcast by likes
+        for podcast in podcasts_by_likes:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
+            if response.status_code != 404:
+                data = response.json()
+                podcast.image = data.get("image_url")
+
+        # Get liked podcasts
+        response = await client.post(f'{API_URL}/api/get_liked_podcasts', json={"user_id": user_id})
+        response.raise_for_status()
+        liked_podcasts_data = response.json()
+
+        liked_podcasts = [
+            Podcast(
+                id=data['id'],
+                name=data['name'],
+                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                status=data.get('status', 'ready'),
+                author=data.get('author', 'Unknown')
+            )
+            for data in liked_podcasts_data
+        ]
+
+        # get images for each liked podcast
+        for podcast in liked_podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
+            if response.status_code != 404:
+                data = response.json()
+                podcast.image = data.get("image_url")
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "podcasts": podcasts,
+        "podcasts_by_likes": podcasts_by_likes,
+        "liked_podcasts": liked_podcasts,
+        "token": token
+    })
 
 @app.get("/audio/{podcast_id}")
 async def get_audio(request: Request, podcast_id: str):
@@ -299,7 +353,43 @@ async def get_podcasts():
         podcasts_data = response.json()
 
         podcasts = [Podcast(id=data['id'], name=data['name'],
-                            image=f'https://picsum.photos/seed/{data["name"]}/200') for data in podcasts_data]
+                            image=f'https://picsum.photos/seed/{data["name"]}/200', author=data['author']) for data in podcasts_data]
+
+        # get images for each podcast
+        for podcast in podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            if response.status_code != 404:
+                podcast.image = response.content
+
+    return podcasts
+
+async def get_podcasts_by_likes():
+    async with httpx.AsyncClient() as client:
+        # Send a POST request to the scripts API
+        response = await client.post(f'{API_URL}/api/podcasts_by_likes', json={"user_id": "user1"})
+        response.raise_for_status()
+        podcasts_data = response.json()
+
+        podcasts = [Podcast(id=data['id'], name=data['name'],
+                            image=f'https://picsum.photos/seed/{data["name"]}/200', author=data['author']) for data in podcasts_data]
+
+        # get images for each podcast
+        for podcast in podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": "user1", "podcast_id": podcast.id})
+            if response.status_code != 404:
+                podcast.image = response.content
+
+    return podcasts
+
+async def get_liked_podcasts():
+    async with httpx.AsyncClient() as client:
+        # Send a POST request to the scripts API
+        response = await client.post(f'{API_URL}/api/get_liked_podcasts', json={"user_id": "user1"})
+        response.raise_for_status()
+        podcasts_data = response.json()
+
+        podcasts = [Podcast(id=data['id'], name=data['name'],
+                            image=f'https://picsum.photos/seed/{data["name"]}/200', author=data['author']) for data in podcasts_data]
 
         # get images for each podcast
         for podcast in podcasts:

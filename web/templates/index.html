@@ -49,6 +49,67 @@
                             <div class="loading-spinner"></div>
                         </div>
                         <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        <p class="podcast-author">{{ podcast.author }}</p>
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="podcast-overlay">
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+            </section>
+        
+            <section id="by-likes" class="featured-section">
+                <h2 class="section-title">Podcasts by Likes</h2>
+                <div class="podcast-grid">
+                    {% for podcast in podcasts_by_likes %}
+                    {% if podcast.status and podcast.status != "ready" %}
+                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="podcast-overlay">
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+            </section>
+        
+            <section id="liked" class="featured-section">
+                <h2 class="section-title">Liked Podcasts</h2>
+                <div class="podcast-grid">
+                    {% for podcast in liked_podcasts %}
+                    {% if podcast.status and podcast.status != "ready" %}
+                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
                         {% else %}
                         <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
                             <div class="podcast-image-container">
