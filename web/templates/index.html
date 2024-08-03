@@ -44,30 +44,50 @@
                     {% if podcast.status and podcast.status != "ready" %}
                     <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
                         <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
                                 alt="{{ podcast.name }} cover image" class="podcast-image">
                             <div class="loading-spinner"></div>
                         </div>
                         <h3 class="podcast-title">{{ podcast.name }}</h3>
                         <p class="podcast-author">{{ podcast.author }}</p>
-                        {% else %}
-                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                            <div class="podcast-image-container">
-                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
-                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                    </div>
+                    {% else %}
+                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="podcast-overlay">
                                 <div class="podcast-overlay">
-                                    <div class="podcast-overlay">
-                                        <button class="play-button">▶</button>
-                                    </div>
+                                    <button class="play-button">▶</button>
                                 </div>
                             </div>
-                            <h3 class="podcast-title">{{ podcast.name }}</h3>
-                            {% endif %}
                         </div>
-                        {% endfor %}
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        <p class="podcast-author">{{ podcast.author }}</p>
                     </div>
+                    {% endif %}
+
+                    {% endfor %}
+                </div>
+                <div class="pagination">
+                    {% if current_page > 1 %}
+                    <a href="?page={{ current_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
+                    {% endif %}
+
+                    {% for page_num in range(1, total_pages + 1) %}
+                    {% if page_num == current_page %}
+                    <span class="pagination-btn active">{{ page_num }}</span>
+                    {% else %}
+                    <a href="?page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if current_page < total_pages %} <a href="?page={{ current_page + 1 }}" class="pagination-btn">
+                        Next &raquo;</a>
+                        {% endif %}
+                </div>
             </section>
-        
+
             <section id="by-likes" class="featured-section">
                 <h2 class="section-title">Podcasts by Likes</h2>
                 <div class="podcast-grid">
@@ -75,29 +95,33 @@
                     {% if podcast.status and podcast.status != "ready" %}
                     <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
                         <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
                                 alt="{{ podcast.name }} cover image" class="podcast-image">
                             <div class="loading-spinner"></div>
                         </div>
                         <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        {% else %}
-                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                            <div class="podcast-image-container">
-                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
-                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                        <p class="podcast-author">{{ podcast.author }}</p>
+                    </div>
+                    {% else %}
+                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="podcast-overlay">
                                 <div class="podcast-overlay">
-                                    <div class="podcast-overlay">
-                                        <button class="play-button">▶</button>
-                                    </div>
+                                    <button class="play-button">▶</button>
                                 </div>
                             </div>
-                            <h3 class="podcast-title">{{ podcast.name }}</h3>
-                            {% endif %}
                         </div>
-                        {% endfor %}
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        <p class="podcast-author">{{ podcast.author }}</p>
                     </div>
+
+                    {% endif %}
+                    {% endfor %}
+                </div>
             </section>
-        
+
             <section id="liked" class="featured-section">
                 <h2 class="section-title">Liked Podcasts</h2>
                 <div class="podcast-grid">
@@ -105,27 +129,30 @@
                     {% if podcast.status and podcast.status != "ready" %}
                     <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
                         <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
                                 alt="{{ podcast.name }} cover image" class="podcast-image">
                             <div class="loading-spinner"></div>
                         </div>
                         <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        {% else %}
-                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                            <div class="podcast-image-container">
-                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}/static/images/placeholder.png{% endif %}"
-                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                        <p class="podcast-author">{{ podcast.author }}</p>
+                    </div>
+                    {% else %}
+                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                        <div class="podcast-image-container">
+                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                alt="{{ podcast.name }} cover image" class="podcast-image">
+                            <div class="podcast-overlay">
                                 <div class="podcast-overlay">
-                                    <div class="podcast-overlay">
-                                        <button class="play-button">▶</button>
-                                    </div>
+                                    <button class="play-button">▶</button>
                                 </div>
                             </div>
-                            <h3 class="podcast-title">{{ podcast.name }}</h3>
-                            {% endif %}
                         </div>
-                        {% endfor %}
+                        <h3 class="podcast-title">{{ podcast.name }}</h3>
+                        <p class="podcast-author">{{ podcast.author }}</p>
                     </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
             </section>
         </main>
         <footer class="app-footer">
@@ -145,7 +172,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="/static/auth.js"></script>
 
 </body>
 

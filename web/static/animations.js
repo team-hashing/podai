@@ -26,6 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 playPodcast(podcastId, podcastName, podcastImage, podcastAuthor);
             });
         }
+
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+
     });
     console.log('loaded');
 
@@ -137,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'podcast-card loading';
         card.innerHTML = `
             <div class="podcast-image-container">
-                <img src="/static/images/placeholder.png" alt="${podcastName} cover image" class="podcast-image">
+                <img src="static/images/placeholder.png" alt="${podcastName} cover image" class="podcast-image">
                 <div class="podcast-overlay">
                     <button class="play-button" disabled>▶</button>
                 </div>
@@ -180,29 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addNewPodcastCard(podcast) {
-        const podcastGrid = document.querySelector('.podcast-grid');
-        const newCard = document.createElement('div');
-        newCard.className = 'podcast-card loading';
-        newCard.dataset.podcastId = podcast.id;
-        newCard.innerHTML = `
-            <div class="podcast-image-container">
-                <img src="${podcast.image}" alt="${podcast.name} cover image" class="podcast-image">
-                <div class="podcast-overlay">
-                    <button class="play-button">▶</button>
-                </div>
-                <div class="loading-spinner"></div>
-            </div>
-            <h3 class="podcast-title">${podcast.name}</h3>
-        `;
-        podcastGrid.appendChild(newCard);
-
-        // Simulate async loading (remove this in production and use real async operations)
-        setTimeout(() => {
-            newCard.classList.remove('loading');
-            newCard.querySelector('.loading-spinner').remove();
-        }, 5000); // Simulating 5 seconds of loading time
-    }
 });
 
 

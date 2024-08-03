@@ -108,11 +108,7 @@ body {
     overflow: hidden;
 }
 
-.podcast-author {
-    font-size: 0.8rem;
-    color: var(--terciary-color);
-    margin-bottom: 0.5rem;
-}
+
 
 .podcast-image {
     width: 100%;
@@ -171,12 +167,21 @@ body {
     text-align: center;
 }
 
+.podcast-author {
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--terciary-color);
+    margin-bottom: 0.5rem;
+}
+
 .app-footer {
     background-color: var(--footer-color);
     text-align: center;
     padding: 1rem;
     font-size: 0.9rem;
 }
+
 
 .audio-player {
     position: fixed;
@@ -221,6 +226,7 @@ body {
 #audio-element {
     width: 100%;
 }
+
 
 .error-notification {
     position: fixed;
@@ -366,3 +372,142 @@ body {
     color: var(--primary-color);
 }
 
+
+/* Pagination */
+
+body {
+    background-color: var(--background-color);
+}
+
+.podcast-card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.podcast-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.podcast-image-container {
+    overflow: hidden;
+}
+
+.podcast-image {
+    transition: transform 0.5s ease;
+}
+
+.podcast-card:hover .podcast-image {
+    transform: scale(1.1);
+}
+
+.podcast-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateY(100%);
+}
+
+.podcast-card:hover .podcast-overlay {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.play-button {
+    background-color: var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.play-button:hover {
+    background-color: var(--secondary-color);
+    transform: scale(1.2);
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.pagination-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.pagination-btn.active {
+    background-color: var(--secondary-color);
+}
+
+/* Polished look */
+
+.app-header {
+    background-color: var(--card-background);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    font-size: 2.5rem;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.section-title {
+    padding: 1rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.podcast-title {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+
+.generate-podcast-btn {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.generate-podcast-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.generate-podcast-menu {
+    background-color: var(--card-background);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.generate-podcast-menu input {
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.generate-podcast-menu input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.generate-podcast-menu button {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    transition: all 0.3s ease;
+}
+
+.generate-podcast-menu button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}

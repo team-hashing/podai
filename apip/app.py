@@ -81,6 +81,8 @@ class UserRequest(BaseModel):
 
 class GetPocastsRequest(BaseModel):
     user_id: str
+    page: int = 0
+    per_page: int = 5
 
 class GenerateScriptRequest(BaseModel):
     user_id: str
@@ -117,13 +119,13 @@ async def get_scripts(body: Dict[str, str]):
 @app.post("/api/podcasts")
 async def get_podcasts_from_user(body: GetPocastsRequest):
     logger.info("Getting podcasts")
-    podcasts = firebase_storage.get_user_podcasts(body.user_id)
+    podcasts = firebase_storage.get_user_podcasts(body.user_id, body.page, body.per_page)
     return podcasts
 
 @app.post("/api/podcasts_by_likes")
 async def get_podcasts_by_likes(body: GetPocastsRequest):
     logger.info("Getting podcasts by likes")
-    podcasts = firebase_storage.get_podcasts_by_likes(body.user_id)
+    podcasts = firebase_storage.get_podcasts_by_likes(body.user_id, body.page, body.per_page)
     return podcasts
 
 @app.post("/api/get_audio")
@@ -159,9 +161,6 @@ async def get_image(body: RequestBody):
         logger.error("Image not found")
         return JSONResponse(status_code=404, content={"detail": "Image not found"})
     return {"image_url": image_url}
-
-
-
 
 @app.post("/api/generate_podcast")
 async def generate_podcast(body: GeneratePodcastRequest):
@@ -301,7 +300,7 @@ async def unlike_podcast(body: RequestBody):
 @app.post("/api/get_liked_podcasts")
 async def get_liked_podcasts(body: GetPocastsRequest):
     logger.info("Getting liked podcasts")
-    podcasts = firebase_storage.get_liked_podcasts(body.user_id)
+    podcasts = firebase_storage.get_liked_podcasts(body.user_id, body.page, body.per_page)
     return podcasts
 
 @app.post("/api/get_user_info")

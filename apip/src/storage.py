@@ -7,7 +7,7 @@ from typing import Dict, List
 import firebase_admin
 from firebase_admin import credentials, storage, firestore
 from google.cloud.exceptions import NotFound
-
+import logging
 
 FIREBASE_KEY = os.environ.get('FIREBASE_KEY')
 STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET')
@@ -124,26 +124,53 @@ class FirebaseStorage:
                 scripts.append({"id": podcast_id, "name": podcast_name})
         return scripts
     
-    def get_user_podcasts(self, user_id: str) -> List[Dict[str, str]]:
+    def get_user_podcasts(self, user_id: str, page: int, per_page: int) -> List[Dict[str, str]]:
         """List all podcasts for a user"""
         docs = self.db.collection('podcasts').where('user_id', '==', user_id).stream()
-        podcasts = []
-        for doc in docs:
-            podcast = doc.to_dict()
-            podcast['id'] = doc.id  # Add the document ID to the podcast dictionary
-            podcasts.append(podcast)
-        return podcasts
-    
-    def get_podcasts_by_likes(self, user_id: str) -> List[Dict[str, str]]:
-        """List all podcasts ordered by likes"""
-        docs = self.db.collection('podcasts').order_by('likes', direction=firestore.Query.DESCENDING).stream()
+        user_ids_to_usernames = {}
         podcasts = []
         for doc in docs:
             podcast = doc.to_dict()
             podcast['id'] = doc.id
+            pod_user_id = podcast['user_id']
+            if pod_user_id not in user_ids_to_usernames:
+                user_ids_to_usernames[pod_user_id] = self.get_username_from_id(pod_user_id)
+            podcast['username'] = user_ids_to_usernames[pod_user_id]
             podcasts.append(podcast)
         
-        return podcasts
+        if page != 0:
+            start = (page - 1) * per_page
+            end = start + per_page
+            podcasts = podcasts[start:end]
+        
+        total_pages = len(podcasts) // per_page
+        if page == 0:
+            return podcasts
+        return {'podcasts': podcasts, 'total_pages': total_pages}
+    
+    def get_podcasts_by_likes(self, user_id: str, page: int = 0, per_page: int = 10) -> List[Dict[str, str]]:
+        """List all podcasts ordered by likes"""
+        docs = self.db.collection('podcasts').order_by('likes', direction=firestore.Query.DESCENDING).stream()
+        podcasts = []
+        user_ids_to_usernames = {}
+        for doc in docs:
+            podcast = doc.to_dict()
+            podcast['id'] = doc.id
+            pod_user_id = podcast['user_id']
+            if pod_user_id not in user_ids_to_usernames:
+                user_ids_to_usernames[pod_user_id] = self.get_username_from_id(pod_user_id)
+            podcast['username'] = user_ids_to_usernames[pod_user_id]
+            podcasts.append(podcast)
+        
+        if page != 0:
+            start = (page - 1) * per_page
+            end = start + per_page
+            podcasts = podcasts[start:end]
+        
+        total_pages = len(podcasts) // per_page
+        if page == 0:
+            return podcasts
+        return {'podcasts': podcasts, 'total_pages': total_pages}
     
     def get_username_from_id(self, user_id: str) -> str:
         """Get username from Firestore"""
@@ -217,15 +244,28 @@ class FirebaseStorage:
                 user['liked_podcasts'].remove(podcast_id)
                 doc_ref.update(user)
     
-    def get_liked_podcasts(self, user_id: str) -> List[Dict[str, str]]:
+    def get_liked_podcasts(self, user_id: str, page: int = 0, per_page: int = 10) -> List[Dict[str, str]]:
         """Get all podcasts liked by a user"""
         docs = self.db.collection('podcasts').where('liked_by', 'array_contains', user_id).stream()
         podcasts = []
+        user_ids_to_usernames = {}
         for doc in docs:
             podcast = doc.to_dict()
             podcast['id'] = doc.id
+            if podcast['user_id'] not in user_ids_to_usernames:
+                user_ids_to_usernames[podcast['user_id']] = self.get_username_from_id(podcast['user_id'])
+            podcast['username'] = user_ids_to_usernames[podcast['user_id']]
             podcasts.append(podcast)
-        return podcasts
+        
+        if page != 0:
+            start = (page - 1) * per_page
+            end = start + per_page
+            podcasts = podcasts[start:end]
+        
+        total_pages = len(podcasts) // per_page
+        if page == 0:
+            return podcasts
+        return {'podcasts': podcasts, 'total_pages': total_pages}
     
     def use_token(self, user_id: str) -> bool:
         """Use a token to generate a podcast"""
