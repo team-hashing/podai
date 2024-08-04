@@ -15,6 +15,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import json
 import logging
 from src.log import setup_logger
+from typing import Optional
 
 logger = setup_logger("uvicorn")
 
@@ -56,6 +57,12 @@ class Podcast(BaseModel):
     image: str
     status: str = "ready"
     author: str = "Unknown"
+    likes: int = 0
+
+class UserInfo(BaseModel):
+    username: str
+    email: str
+    age: Optional[int] = None
 
 
 async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
@@ -151,52 +158,18 @@ async def logout(request: Request):
     return response
 
 
-@app.post("/")
-async def root_post(request: Request):
-    token = request.cookies.get("access_token")
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        raise HTTPException(
-            status_code=400, detail="User ID not found in cookies")
-
+async def get_user_info(user_id: str):
     async with httpx.AsyncClient() as client:
-        # Send a POST request to the scripts API
-        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": user_id})
+        # get user info
+        response = await client.post(f'{API_URL}/api/get_user_info', json={"user_id": user_id})
         response.raise_for_status()
-        podcasts_data = response.json()
-
-        podcasts = [
-            Podcast(
-                id=data['id'],
-                name=data['name'],
-                image=f'https://picsum.photos/seed/{data["name"]}/200',
-                status=data.get('status', 'ready'),
-                author=data.get('username', 'Unknown')
-            )
-            for data in podcasts_data
-        ]
-
-        # get images for each podcast
-        for podcast in podcasts:
-            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
-            if response.status_code != 404:
-                data = response.json()
-                podcast.image = data.get("image_url")
-
-    return templates.TemplateResponse("index.html", {"request": request, "podcasts": podcasts, "token": token})
-
-
-@app.get("/")
-async def root(request: Request, page: int = 1, per_page: int = 12):
-    token = request.cookies.get("access_token")
-    user_id = request.cookies.get("user_id")
-    if not token:
-        logger.info("User not logged in")
-        return RedirectResponse(url="/login")
-    if not user_id:
-        raise HTTPException(status_code=400, detail="User ID not found in cookies")
-
+        user_info = response.json()
+        
+        return user_info
+    
+async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
     async with httpx.AsyncClient() as client:
+
         # Send a POST request to the scripts API with pagination parameters
         response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": user_id, "page": page, "per_page": per_page})
         response.raise_for_status()
@@ -214,11 +187,11 @@ async def root(request: Request, page: int = 1, per_page: int = 12):
                 name=data['name'],
                 image=f'https://picsum.photos/seed/{data["name"]}/200',
                 status=data.get('status', 'ready'),
-                author=data.get('username', 'Unknown')
+                author=data.get('username', 'Unknown'),
+                likes=data.get('likes', 0)
             )
             for data in podcasts_data
         ]
-
 
         # get images for each podcast
         for podcast in podcasts:
@@ -226,62 +199,112 @@ async def root(request: Request, page: int = 1, per_page: int = 12):
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+        
+        return podcasts, total_pages
 
-        # Get podcasts by likes
-        response = await client.post(f'{API_URL}/api/podcasts_by_likes', json={"user_id": user_id})
+async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
+    async with httpx.AsyncClient() as client:
+
+        response = await client.post(f'{API_URL}/api/podcasts_by_likes', json={"user_id": user_id, "page": page, "per_page": per_page})
         response.raise_for_status()
-        podcasts_by_likes_data = response.json()
+        if page != 0:
+            data = response.json()
+            podcasts_data = data['podcasts']
+            total_pages = data['total_pages']
+        else:
+            podcasts_data = response.json()
+            total_pages = 1
 
-        podcasts_by_likes = [
+        podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
                 image=f'https://picsum.photos/seed/{data["name"]}/200',
                 status=data.get('status', 'ready'),
-                author=data.get('username', 'Unknown')
+                author=data.get('username', 'Unknown'),
+                likes=data.get('likes', 0)
             )
-            for data in podcasts_by_likes_data
+            for data in podcasts_data
         ]
 
-        # get images for each podcast by likes
-        for podcast in podcasts_by_likes:
+        for podcast in podcasts:
             response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+        
+        return podcasts, total_pages
 
+async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
+    async with httpx.AsyncClient() as client:
         # Get liked podcasts
-        response = await client.post(f'{API_URL}/api/get_liked_podcasts', json={"user_id": user_id})
+        response = await client.post(f'{API_URL}/api/get_liked_podcasts', json={"user_id": user_id, "page": page, "per_page": per_page})
         response.raise_for_status()
-        liked_podcasts_data = response.json()
+        if page != 0:
+            data = response.json()
+            podcasts_data = data['podcasts']
+            total_pages = data['total_pages']
+        else:
+            podcasts_data = response.json()
+            total_pages = 1
 
-        liked_podcasts = [
+        podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
                 image=f'https://picsum.photos/seed/{data["name"]}/200',
                 status=data.get('status', 'ready'),
-                author=data.get('username', 'Unknown')
+                author=data.get('username', 'Unknown'),
+                likes=data.get('likes', 0)
             )
-            for data in liked_podcasts_data
+            for data in podcasts_data
         ]
 
         # get images for each liked podcast
-        for podcast in liked_podcasts:
+        for podcast in podcasts:
             response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+        
+        return podcasts, 1
 
-    return templates.TemplateResponse("index.html", {
+
+@app.get("/")
+async def root(request: Request, user_page: int = 1, likes_page: int = 1, liked_page: int = 1, per_page: int = 5):
+    token = request.cookies.get("access_token")
+    user_id = request.cookies.get("user_id")
+    if not token:
+        logger.info("User not logged in")
+        return RedirectResponse(url="/login")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+    
+    user_info                        = await get_user_info(user_id)
+    user_podcasts, user_pages        = await get_user_podcasts(user_id, page=user_page, per_page=per_page)
+    podcasts_by_likes, likes_pages   = await get_podcasts_by_likes(user_id, page=likes_page, per_page=per_page)
+    liked_podcasts, liked_pages      = await get_liked_podcasts(user_id, page=liked_page, per_page=per_page)
+
+    
+    response = templates.TemplateResponse("index.html", {
         "request": request,
-        "podcasts": podcasts,
+        "podcasts": user_podcasts,
         "podcasts_by_likes": podcasts_by_likes,
         "liked_podcasts": liked_podcasts,
         "token": token,
-        "current_page": page,
-        "total_pages": total_pages
+        "user_pages": user_pages,
+        "likes_pages": likes_pages,
+        "liked_pages": liked_pages,
+        "user_page": user_page,
+        "likes_page": likes_page,
+        "liked_page": liked_page,
+        "user_info": user_info
     })
+
+    response.set_cookie(key="user_info", value=json.dumps(user_info), httponly=False)
+    return response
+
 
 @app.get("/audio/{podcast_id}")
 async def get_audio(request: Request, podcast_id: str):
@@ -300,6 +323,33 @@ async def get_audio(request: Request, podcast_id: str):
             raise HTTPException(status_code=404, detail="Audio not found")
         else:
             return StreamingResponse(iter([audio_data]), media_type="audio/mpeg")
+
+
+@app.get("/like_podcast/{podcast_id}")
+async def like_podcast(request: Request, podcast_id: str):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f'{API_URL}/api/like_podcast', json={"user_id": user_id, "podcast_id": podcast_id})
+        response.raise_for_status()
+        return RedirectResponse(url="/")
+
+@app.get("/unlike_podcast/{podcast_id}")
+async def unlike_podcast(request: Request, podcast_id: str):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f'{API_URL}/api/unlike_podcast', json={"user_id": user_id, "podcast_id": podcast_id})
+        response.raise_for_status()
+        return RedirectResponse(url="/")
 
 
 class PodcastGenerationRequest(BaseModel):
@@ -352,3 +402,49 @@ async def generate_audio():
                 status_code=response.status_code, detail=response.text)
         podcast_data = response.json()
 
+
+"""
+@app.post("/")
+async def root_post(request: Request):
+    token = request.cookies.get("access_token")
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
+    async with httpx.AsyncClient() as client:
+        # Send a POST request to the scripts API
+        response = await client.post(f'{API_URL}/api/podcasts', json={"user_id": user_id})
+        response.raise_for_status()
+        podcasts_data = response.json()
+
+        podcasts = [
+            Podcast(
+                id=data['id'],
+                name=data['name'],
+                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                status=data.get('status', 'ready'),
+                author=data.get('username', 'Unknown'),
+                likes=data.get('likes', 0)
+            )
+            for data in podcasts_data
+        ]
+
+        # get images for each podcast
+        for podcast in podcasts:
+            response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
+            if response.status_code != 404:
+                data = response.json()
+                podcast.image = data.get("image_url")
+
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "podcasts": podcasts,
+            # "podcasts_by_likes": podcasts_by_likes,
+            # "liked_podcasts": liked_podcasts,
+            "token": token,
+            # "current_page": page,
+            # "total_pages": total_pages
+        })
+    
+"""

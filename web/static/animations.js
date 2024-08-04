@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPodcastTitle = document.getElementById('current-podcast-title');
     const currentPodcastAuthor = document.getElementById('current-podcast-author');
 
+    let index = 0;
     podcastCards.forEach(card => {
         card.addEventListener('mouseenter', () => {
             card.style.animation = 'cardPop 0.3s forwards';
@@ -35,8 +36,146 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
         }, index * 100);
+        index++;
 
     });
+
+
+    const likedSection = document.querySelector('#liked .podcast-grid');
+    let userInfoElement = document.getElementById('user_info');
+    const likeButtons = document.querySelectorAll('.like-button');
+
+    console.log(userInfoElement)
+    let userInfo = {};
+    
+    if (userInfoElement) {
+        let userInfoText = userInfoElement.textContent;
+        if (userInfoText) {
+            try {
+                userInfo = JSON.parse(userInfoText);
+            } catch (error) {
+                console.error("Error parsing JSON:", error);
+            }
+        } else {
+            console.warn("User info element is empty.");
+        }
+    } else {
+        console.warn("User info element not found.");
+    }
+
+    // if not userInfo.liked_podcasts, create it TODO
+    if (!userInfo.liked_podcasts) {
+        userInfo.liked_podcasts = [];
+    }
+
+
+    likeButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+            const podcastId = button.dataset.podcastId;
+            const isLiked = button.classList.contains('liked');
+
+            try {
+
+                // Toggle liked state
+                button.classList.toggle('liked');
+
+                // Add animation class
+                button.classList.add(isLiked ? 'unliking' : 'liking');
+
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    button.classList.remove('liking', 'unliking');
+                }, 500);
+
+                // Update userInfo.liked_podcasts
+                if (isLiked) {
+                    userInfo.liked_podcasts = userInfo.liked_podcasts.filter(id => id !== podcastId);
+                } else {
+                    
+                    userInfo.liked_podcasts.push(podcastId);
+                }
+
+                // Update the liked section
+                updateLikedSection(podcastId, isLiked);
+
+            } catch (error) {
+                console.error('Error updating like status:', error);
+                // Optionally, show an error message to the user
+            }
+
+            const response = await fetch(`/${isLiked ? 'unlike' : 'like'}_podcast/${podcastId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include any necessary authentication headers
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update like status');
+            }
+        });
+    });
+
+    function updateLikedSection(podcastId, wasLiked) {
+        const podcastCard = document.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        if (!podcastCard) {
+            return;
+        }
+    
+        if (wasLiked) {
+            // Remove from liked section
+            const likedCard = likedSection.querySelector(`.podcast-card[podcast-id="${podcastId}"]`);
+            if (likedCard) {
+                likedCard.remove();
+            }
+        } else {
+            // Add to liked section
+            const clonedCard = podcastCard.cloneNode(true);
+            setupLikeButton(clonedCard.querySelector('.like-button'));
+            likedSection.insertBefore(clonedCard, likedSection.firstChild);
+        }
+        updateLikeCount(podcastId, !wasLiked);
+
+    }
+    
+    function setupLikeButton(button) {
+        button.addEventListener('click', async () => {
+            const podcastId = button.dataset.podcastId;
+            const isLiked = button.classList.contains('liked');
+    
+            // Toggle liked state
+            button.classList.toggle('liked');
+    
+            // Add animation class
+            button.classList.add(isLiked ? 'unliking' : 'liking');
+    
+            // Update like count
+            updateLikeCount(podcastId, !isLiked);
+    
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                button.classList.remove('liking', 'unliking');
+            }, 500);
+        });
+    }
+    
+    function updateLikeCount(podcastId, isLiked) {
+        const podcastCard = document.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        const likeCountElement = podcastCard.querySelector('.like-count');
+        let likeCount = parseInt(likeCountElement.textContent, 10);
+    
+        if (isLiked) {
+            likeCount++;
+        } else {
+            likeCount--;
+        }
+    
+        likeCountElement.textContent = likeCount;
+    }
+    
+
+
     console.log('loaded');
 
     async function playPodcast(podcastId, podcastName, podcastImage, podcastAuthor) {

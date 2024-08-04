@@ -7,7 +7,9 @@ from typing import Dict, List
 import firebase_admin
 from firebase_admin import credentials, storage, firestore
 from google.cloud.exceptions import NotFound
-import logging
+from src.log import setup_logger
+
+logger = setup_logger("uvicorn")
 
 FIREBASE_KEY = os.environ.get('FIREBASE_KEY')
 STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET')
@@ -137,13 +139,13 @@ class FirebaseStorage:
                 user_ids_to_usernames[pod_user_id] = self.get_username_from_id(pod_user_id)
             podcast['username'] = user_ids_to_usernames[pod_user_id]
             podcasts.append(podcast)
-        
+
+        total_pages = len(podcasts) // per_page
         if page != 0:
             start = (page - 1) * per_page
             end = start + per_page
             podcasts = podcasts[start:end]
         
-        total_pages = len(podcasts) // per_page
         if page == 0:
             return podcasts
         return {'podcasts': podcasts, 'total_pages': total_pages}
@@ -161,13 +163,12 @@ class FirebaseStorage:
                 user_ids_to_usernames[pod_user_id] = self.get_username_from_id(pod_user_id)
             podcast['username'] = user_ids_to_usernames[pod_user_id]
             podcasts.append(podcast)
+        total_pages = len(podcasts) // per_page
         
         if page != 0:
             start = (page - 1) * per_page
             end = start + per_page
             podcasts = podcasts[start:end]
-        
-        total_pages = len(podcasts) // per_page
         if page == 0:
             return podcasts
         return {'podcasts': podcasts, 'total_pages': total_pages}
@@ -249,6 +250,7 @@ class FirebaseStorage:
         docs = self.db.collection('podcasts').where('liked_by', 'array_contains', user_id).stream()
         podcasts = []
         user_ids_to_usernames = {}
+
         for doc in docs:
             podcast = doc.to_dict()
             podcast['id'] = doc.id
@@ -257,12 +259,12 @@ class FirebaseStorage:
             podcast['username'] = user_ids_to_usernames[podcast['user_id']]
             podcasts.append(podcast)
         
+        total_pages = len(podcasts) // per_page
         if page != 0:
             start = (page - 1) * per_page
             end = start + per_page
             podcasts = podcasts[start:end]
         
-        total_pages = len(podcasts) // per_page
         if page == 0:
             return podcasts
         return {'podcasts': podcasts, 'total_pages': total_pages}

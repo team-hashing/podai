@@ -86,7 +86,7 @@ body {
 
 .podcast-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
@@ -331,29 +331,46 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 30px; /* Width of the semi-circle */
-    height:30px; /* Height of the semi-circle */
+    width: 30px;
+    /* Width of the semi-circle */
+    height: 30px;
+    /* Height of the semi-circle */
     border: 1px solid var(--primary-color);
     border-top: 1px solid var(--text-color);
-    border-bottom: none; /* Remove the bottom border */
-    border-radius: 30px 30px 0 0; /* Create a semi-circle */
-    transform-origin: center; /* Ensure rotation is around the center */
+    border-bottom: none;
+    /* Remove the bottom border */
+    border-radius: 30px 30px 0 0;
+    /* Create a semi-circle */
+    transform-origin: center;
+    /* Ensure rotation is around the center */
     animation: spin 1s linear infinite;
     z-index: 10;
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid var(--primary-color); /* Blue */
+    border: 8px solid #f3f3f3;
+    /* Light grey */
+    border-top: 8px solid var(--primary-color);
+    /* Blue */
     border-radius: 50%;
 }
 
 /* Keyframes for the spin animation */
 @keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }
 
 @keyframes spin-half {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }
 
 #close-menu-btn {
@@ -510,4 +527,127 @@ body {
 .generate-podcast-menu button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* likes */
+
+.podcast-card {
+    position: relative;
+}
+
+.like-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5em;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+    z-index: 10;
+}
+
+.like-button i {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.like-button:hover {
+    transform: scale(1.1);
+}
+
+.like-button.liked i {
+    color: var(--secondary-color);
+    text-shadow: 0 0 10px var(--primary-color);
+}
+
+.like-ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--primary-color) 0%, rgba(255, 65, 54, 0) 70%);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes likeAnimation {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes unlikeAnimation {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes rippleEffect {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 0.5;
+    }
+
+    100% {
+        width: 100px;
+        height: 100px;
+        opacity: 0;
+    }
+}
+
+.like-button.liking i {
+    animation: likeAnimation 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.like-button.unliking i {
+    animation: unlikeAnimation 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.like-button.liking .like-ripple {
+    animation: rippleEffect 0.5s ease-out;
+}
+
+
+/* Avatar */
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.user-avatar:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
