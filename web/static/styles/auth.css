@@ -8,6 +8,7 @@
     --input-focus-shadow-color: rgba(128, 0, 128, 0.2);
     --container-shadow-color: rgba(0, 0, 0, 0.1);
     --button-text-color: #fff;
+    --error-color: #ff076f;
 }
 
 /* General Styles */
@@ -68,4 +69,107 @@ body {
     border: none;
     border-radius: 5px;
     font-size: 16px;
+}
+
+/* More */
+
+.password-strength {
+    height: 5px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.error-popup {
+    display: none;
+    background-color: #ff076f;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+.shake {
+    animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Transition */
+body {
+    overflow-x: hidden;
+}
+
+.page-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #800080, #ff00ff, #800080);
+    background-size: 400% 400%;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.content-wrapper {
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+body.transition-active .page-transition {
+    opacity: 1;
+    animation: gradientBG 5s ease infinite;
+}
+
+body.transition-active .content-wrapper {
+    transform: scale(0.9);
+    opacity: 0;
+}
+
+
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.transition-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    color: white;
+    animation: scaleIn 0.5s ease-out, rotate 2s linear infinite;
 }

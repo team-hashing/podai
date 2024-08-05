@@ -309,12 +309,23 @@ async def get_user_info(body: UserRequest):
     user_info = firebase_storage.get_user_info(body.user_id)
     return user_info
 
-
 @app.post("/api/create_user")
 async def create_user(body: UserCreateRequest):
     logger.info("Creating user")
     firebase_storage.create_user(body.user_id, body.username)
     return {"message": "User created"}
+
+@app.post("/api/get_podcast_info")
+async def get_podcast_info(body: RequestBody):
+    logger.info("Getting podcast info")
+    podcast_info = firebase_storage.get_podcast_info(body.user_id, body.podcast_id)
+    return podcast_info
+
+@app.post("/api/get_podcast_status")
+async def get_podcast_status(body: RequestBody):
+    logger.info("Getting podcast status")
+    status = firebase_storage.get_podcast_status(body.user_id, body.podcast_id)
+    return status
 
 if __name__ == "__main__":
     import uvicorn

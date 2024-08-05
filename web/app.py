@@ -16,6 +16,7 @@ import json
 import logging
 from src.log import setup_logger
 from typing import Optional
+from src.auth import router as auth_router
 
 logger = setup_logger("uvicorn")
 
@@ -27,6 +28,9 @@ templates = Jinja2Templates(directory="templates")
 DATA_PATH = os.getenv('DATA_PATH')
 API_URL = os.getenv('API_URL')
 
+
+# Routes
+app.include_router(auth_router, prefix="")
 
 def load_firebase_config():
     firebase_config = {
@@ -76,86 +80,6 @@ async def get_current_user(token: HTTPAuthorizationCredentials = Depends(securit
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-
-@app.get("/login")
-async def login_page(request: Request):
-    token = request.cookies.get("access_token")
-    if token:
-        return RedirectResponse(url="/")
-    return templates.TemplateResponse("login.html", {"request": request})
-
-
-@app.post("/login")
-async def login(request: Request, email: str = Form(...), password: str = Form(...)):
-    token = request.cookies.get("access_token")
-    if token:
-        return RedirectResponse(url="/")
-
-    try:
-        user = auth.sign_in_with_email_and_password(email, password)
-        id_token = user['idToken']
-        response = RedirectResponse(url="/")
-        response.set_cookie(key="access_token", value=id_token, httponly=True)
-        response.set_cookie(
-            key="user_id", value=user['localId'], httponly=False)
-        logger.info(f"User {email} logged in")
-        return response
-    except:
-        raise HTTPException(
-            status_code=401,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-@app.get("/signup")
-async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
-
-
-@app.post("/signup")
-async def signup(username: str = Form(...), email: str = Form(...), password: str = Form(...)):
-    try:
-        # Create user with email and password
-        user = auth.create_user_with_email_and_password(email, password)
-        id_token = user['idToken']
-        logger.info(f"User {email} signed up")
-
-        # Register user in the main app
-        async with httpx.AsyncClient() as client:
-            response = await client.post(f"{API_URL}/api/create_user", json={"username": username, "user_id": user['localId']})
-            response.raise_for_status()
-            logger.info(f"User {username} registered in main app")
-
-        # Set the access token cookie
-        response = RedirectResponse(url="/")
-        response.set_cookie(key="access_token", value=id_token, httponly=True)
-        # Set a cookie with the user's id
-        response.set_cookie(
-            key="user_id", value=user['localId'], httponly=False)
-        return response
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error occurred: {e}")
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail="Unable to register user in main app",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except Exception as e:
-        logger.error(f"Error during signup: {e}")
-        raise HTTPException(
-            status_code=400,
-            detail="Unable to create account",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-@app.get("/logout")
-async def logout(request: Request):
-    response = RedirectResponse(url="/login")
-    response.delete_cookie(key="access_token")
-    response.delete_cookie(key="user_id")
-    return response
 
 
 async def get_user_info(user_id: str):
@@ -351,6 +275,34 @@ async def unlike_podcast(request: Request, podcast_id: str):
         response.raise_for_status()
         return RedirectResponse(url="/")
 
+
+@app.get("/check-podcast-status/{podcast_id}")
+async def check_podcast_status(request: Request, podcast_id: str):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f'{API_URL}/api/get_podcast_status', json={"user_id": user_id, "podcast_id": podcast_id})
+        response.raise_for_status()
+        return response.json()
+    
+
+@app.get("/get-podcast-details/{podcast_id}")
+async def get_podcast_details(request: Request, podcast_id: str):
+    # Extract user_id from cookies
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=400, detail="User ID not found in cookies")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f'{API_URL}/api/get_podcast_info', json={"user_id": user_id, "podcast_id": podcast_id})
+        response.raise_for_status()
+        return response.json()
+    
 
 class PodcastGenerationRequest(BaseModel):
     name: str

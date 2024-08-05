@@ -291,6 +291,21 @@ class FirebaseStorage:
         })
 
 
+    def get_podcast_info(self, user_id:str, podcast_id: str) -> Dict:
+        """Get podcast information from Firestore"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()
+        return None
+    
+    def get_podcast_status(self, user_id:str, podcast_id: str) -> str:
+        """Get podcast status from Firestore"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()['status']
+        return None
 
 
 # Create a global instance of FirebaseStorage

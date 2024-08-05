@@ -5,29 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pod AI - Your Podcast Hub</title>
+    <link rel="stylesheet" href="/static/css/auth.css">
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="/static/animations.js" defer></script>
 </head>
 
-<body>
-    <div id="user-info">
-        <span id="user-email"></span>
-    </div>
-
-    <div class="app-container">
-        <header class="app-header">
-            <!-- <h1 class="logo">Pod AI</h1> -->
-            <nav class="main-nav">
-                <ul>
-                    <li><a href="#" class="nav-link">Home</a></li>
-                    <li><a href="#" class="nav-link">Discover</a></li>
-                    <li><a href="#" class="nav-link">Library</a></li>
-                    <li><a href="/logout" class="nav-link">Logout</a></li>
-                </ul>
-            </nav>
-            <div class="user-info">
-                <!--  TODO: Add user image
+<body class="transition-active">
+    <div class="page-transition"></div>
+    <div class="content-wrapper">
+        <div class="app-container">
+            <header class="app-header">
+                <!-- <h1 class="logo">Pod AI</h1> -->
+                <nav class="main-nav">
+                    <ul>
+                        <button id="generate-podcast-btn" class="generate-podcast-btn">Generate Podcast</button>
+                        <li class="main-nav-item"><a href="/logout" class="nav-link">Logout</a></li>
+                    </ul>
+                </nav>
+                <div class="user-info">
+                    <span class="username">{{ user_info.username }}</span>
+                    <span class="tokens">Tokens: {{ user_info.tokens }}</span>
+                    <!--  TODO: Add user image
                 {% if user_info.image and user_info.image != "" %}
                 {{ user_info.image }}
                 <img src="{{ user_info.image }}" alt="{{ user_info.username }}" class="user-avatar">
@@ -35,232 +34,235 @@
                 <img src="/static/images/placeholder.png" alt="{{ user_info.username[0] }}" class="user-avatar">
                 {% endif %}
                 -->
-                <img src="/static/images/placeholder.png" alt="{{ user_info.username[0] }}" class="user-avatar">
-                <span class="username">{{ user_info.username }}</span>
-                <span class="tokens">Tokens: {{ user_info.tokens }}</span>
-            </div>
-        </header>
-        <button id="generate-podcast-btn" class="generate-podcast-btn">Generate Podcast</button>
-        <aside id="generate-podcast-menu" class="generate-podcast-menu">
-            <button id="close-menu-btn" class="close-menu-btn">&times;</button>
-            <h2>Generate New Podcast</h2>
-            <form id="generate-podcast-form">
-                <input type="text" id="podcast-name" placeholder="Podcast Name" required>
-                <input type="text" id="podcast-subject" placeholder="Podcast Subject" required>
-                <button type="submit">Generate</button>
-            </form>
-        </aside>
-        <main class="main-content">
-            <section id="featured" class="featured-section">
-                <h2 class="section-title">My podcasts</h2>
-                <div class="podcast-grid">
-                    {% for podcast in podcasts %}
-                    {% if podcast.status and podcast.status != "ready" %}
-                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="loading-spinner"></div>
+                    <img src="/static/images/placeholder.png" alt="{{ user_info.username[0] }}" class="user-avatar">
+
+                </div>
+            </header>
+            <aside id="generate-podcast-menu" class="generate-podcast-menu">
+                <button id="close-menu-btn" class="close-menu-btn">&times;</button>
+                <h2>Generate New Podcast</h2>
+                <form id="generate-podcast-form">
+                    <input type="text" id="podcast-name" placeholder="Podcast Name" required>
+                    <input type="text" id="podcast-subject" placeholder="Podcast Subject" required>
+                    <button type="submit">Generate</button>
+                </form>
+            </aside>
+            <main class="main-content">
+                <section id="featured" class="featured-section">
+                    <h2 class="section-title">My podcasts</h2>
+                    <div class="podcast-grid">
+                        {% for podcast in podcasts %}
+                        {% if podcast.status and podcast.status != "ready" %}
+                        <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="loading-spinner"></div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
                         </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
                         <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
                             data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
                             <i class="fas fa-heart"></i>
                             <div class="like-ripple"></div>
                         </button>
-                    </div><button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                        data-podcast-id="{{ podcast.id }}">
-                        <i class="fas fa-heart"></i>
-                        <div class="like-ripple"></div>
-                    </button>
-                    {% else %}
-                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="podcast-overlay">
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
                                 <div class="podcast-overlay">
-                                    <button class="play-button">▶</button>
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
                                 </div>
                             </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
                         </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
-                        <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                            data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
-                            <i class="fas fa-heart"></i>
-                            <div class="like-ripple"></div>
-                        </button>
-                    </div>
-                    {% endif %}
-
-                    {% endfor %}
-                </div>
-                <div class="pagination">
-                    {% if user_page and user_page > 1 %}
-                    <a href="?user_page={{ user_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
-                    {% endif %}
-
-                    {% for page_num in range(1, user_pages + 1) %}
-                    {% if page_num == user_page %}
-                    <span class="pagination-btn active">{{ page_num }}</span>
-                    {% else %}
-                    <a href="?user_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if user_page < user_pages %} <a href="?user_page={{ user_page + 1 }}" class="pagination-btn">
-                        Next &raquo;</a>
                         {% endif %}
-                </div>
-            </section>
 
-            <section id="by-likes" class="featured-section">
-                <h2 class="section-title">Most liked podcasts</h2>
-                <div class="podcast-grid">
-                    {% for podcast in podcasts_by_likes %}
-                    {% if podcast.status and podcast.status != "ready" %}
-                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="loading-spinner"></div>
-                        </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
-                        <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                            data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
-                            <i class="fas fa-heart"></i>
-                            <div class="like-ripple"></div>
-                        </button>
+                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="podcast-overlay">
+                    <div class="pagination">
+                        {% if user_page and user_page > 1 %}
+                        <a href="?user_page={{ user_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
+                        {% endif %}
+
+                        {% for page_num in range(1, user_pages + 1) %}
+                        {% if page_num == user_page %}
+                        <span class="pagination-btn active">{{ page_num }}</span>
+                        {% else %}
+                        <a href="?user_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if user_page < user_pages %} <a href="?user_page={{ user_page + 1 }}" class="pagination-btn">
+                            Next &raquo;</a>
+                            {% endif %}
+                    </div>
+                </section>
+
+                <section id="by-likes" class="featured-section">
+                    <h2 class="section-title">Most liked podcasts</h2>
+                    <div class="podcast-grid">
+                        {% for podcast in podcasts_by_likes %}
+                        {% if podcast.status and podcast.status != "ready" %}
+                        <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="loading-spinner"></div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
                                 <div class="podcast-overlay">
-                                    <button class="play-button">▶</button>
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
                                 </div>
                             </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
                         </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
-                        <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                            data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
-                            <i class="fas fa-heart"></i>
-                            <div class="like-ripple"></div>
-                        </button>
-                    </div>
 
-                    {% endif %}
-                    {% endfor %}
-                </div>
-                <div class="pagination">
-                    {% if likes_page and likes_page > 1 %}
-                    <a href="?likes_page={{ likes_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
-                    {% endif %}
-
-                    {% for page_num in range(1, likes_pages + 1) %}
-                    {% if page_num == likes_page %}
-                    <span class="pagination-btn active">{{ page_num }}</span>
-                    {% else %}
-                    <a href="?likes_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if likes_page < likes_pages %} <a href="?likes_page={{ likes_page + 1 }}" class="pagination-btn">
-                        Next &raquo;</a>
                         {% endif %}
-                </div>
-            </section>
-
-            <section id="liked" class="featured-section">
-                <h2 class="section-title">My favourites</h2>
-                <div class="podcast-grid">
-                    {% for podcast in liked_podcasts %}
-                    {% if podcast.status and podcast.status != "ready" %}
-                    <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="loading-spinner"></div>
-                        </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
-                        <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                            data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
-                            <i class="fas fa-heart"></i>
-                            <div class="like-ripple"></div>
-                        </button>
+                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
-                        <div class="podcast-image-container">
-                            <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
-                                alt="{{ podcast.name }} cover image" class="podcast-image">
-                            <div class="podcast-overlay">
+                    <div class="pagination">
+                        {% if likes_page and likes_page > 1 %}
+                        <a href="?likes_page={{ likes_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
+                        {% endif %}
+
+                        {% for page_num in range(1, likes_pages + 1) %}
+                        {% if page_num == likes_page %}
+                        <span class="pagination-btn active">{{ page_num }}</span>
+                        {% else %}
+                        <a href="?likes_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if likes_page < likes_pages %} <a href="?likes_page={{ likes_page + 1 }}"
+                            class="pagination-btn">
+                            Next &raquo;</a>
+                            {% endif %}
+                    </div>
+                </section>
+
+                <section id="liked" class="featured-section">
+                    <h2 class="section-title">My favourites</h2>
+                    <div class="podcast-grid">
+                        {% for podcast in liked_podcasts %}
+                        {% if podcast.status and podcast.status != "ready" %}
+                        <div class="podcast-card loading" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
+                                <div class="loading-spinner"></div>
+                            </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="podcast-card" data-podcast-id="{{ podcast.id }}">
+                            <div class="podcast-image-container">
+                                <img src="{% if podcast.image %}{{ podcast.image }}{% else %}static/images/placeholder.png{% endif %}"
+                                    alt="{{ podcast.name }} cover image" class="podcast-image">
                                 <div class="podcast-overlay">
-                                    <button class="play-button">▶</button>
+                                    <div class="podcast-overlay">
+                                        <button class="play-button">▶</button>
+                                    </div>
                                 </div>
                             </div>
+                            <h3 class="podcast-title">{{ podcast.name }}</h3>
+                            <p class="podcast-author">{{ podcast.author }}</p>
+                            <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
+                                data-podcast-id="{{ podcast.id }}">
+                                <span class="like-count">{{ podcast.likes }}</span>
+                                <i class="fas fa-heart"></i>
+                                <div class="like-ripple"></div>
+                            </button>
                         </div>
-                        <h3 class="podcast-title">{{ podcast.name }}</h3>
-                        <p class="podcast-author">{{ podcast.author }}</p>
-                        <button class="like-button {% if podcast.id in user_info.liked_podcasts %}liked{% endif %}"
-                            data-podcast-id="{{ podcast.id }}">
-                            <span class="like-count">{{ podcast.likes }}</span>
-                            <i class="fas fa-heart"></i>
-                            <div class="like-ripple"></div>
-                        </button>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-                <div class="pagination">
-                    {% if liked_page and liked_page > 1 %}
-                    <a href="?liked_page={{ liked_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
-                    {% endif %}
-
-                    {% for page_num in range(1, liked_pages + 1) %}
-                    {% if page_num == liked_page %}
-                    <span class="pagination-btn active">{{ page_num }}</span>
-                    {% else %}
-                    <a href="?liked_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if liked_page < liked_pages %} <a href="?liked_page={{ liked_page + 1 }}" class="pagination-btn">
-                        Next &raquo;</a>
                         {% endif %}
-                </div>
-            </section>
-        </main>
-        <footer class="app-footer">
-            <p> 2024 PodAI, Team Hashing</p>
-        </footer>
-    </div>
-    <div id="audio-player" class="audio-player">
-        <div class="audio-info">
-            <img id="current-podcast-image" src="" alt="Current podcast">
-            <div class="audio-details">
-                <h3 id="current-podcast-title"></h3>
-                <p id="current-podcast-author"></p>
-            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="pagination">
+                        {% if liked_page and liked_page > 1 %}
+                        <a href="?liked_page={{ liked_page - 1 }}" class="pagination-btn">&laquo; Previous</a>
+                        {% endif %}
+
+                        {% for page_num in range(1, liked_pages + 1) %}
+                        {% if page_num == liked_page %}
+                        <span class="pagination-btn active">{{ page_num }}</span>
+                        {% else %}
+                        <a href="?liked_page={{ page_num }}" class="pagination-btn">{{ page_num }}</a>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if liked_page < liked_pages %} <a href="?liked_page={{ liked_page + 1 }}"
+                            class="pagination-btn">
+                            Next &raquo;</a>
+                            {% endif %}
+                    </div>
+                </section>
+            </main>
+            <footer class="app-footer">
+                <p> 2024 PodAI, Team Hashing</p>
+            </footer>
         </div>
-        <audio id="audio-element" controls></audio>
+        <div id="audio-player" class="audio-player">
+            <div class="audio-info">
+                <img id="current-podcast-image" src="" alt="Current podcast">
+                <div class="audio-details">
+                    <h3 id="current-podcast-title"></h3>
+                    <p id="current-podcast-author"></p>
+                </div>
+            </div>
+            <audio id="audio-element" controls></audio>
+        </div>
+
+
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-
 </body>
 
 </html>

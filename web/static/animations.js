@@ -40,14 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     });
 
-
+    const userSection = document.querySelector('#featured .podcast-grid');
+    const likesSection = document.querySelector('#by-likes .podcast-grid');
     const likedSection = document.querySelector('#liked .podcast-grid');
+
     let userInfoElement = document.getElementById('user_info');
     const likeButtons = document.querySelectorAll('.like-button');
 
     console.log(userInfoElement)
     let userInfo = {};
-    
+
     if (userInfoElement) {
         let userInfoText = userInfoElement.textContent;
         if (userInfoText) {
@@ -76,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
 
-                // Toggle liked state
+                // Toggle liked stateº
                 button.classList.toggle('liked');
 
                 // Add animation class
@@ -91,12 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isLiked) {
                     userInfo.liked_podcasts = userInfo.liked_podcasts.filter(id => id !== podcastId);
                 } else {
-                    
+
                     userInfo.liked_podcasts.push(podcastId);
                 }
 
                 // Update the liked section
                 updateLikedSection(podcastId, isLiked);
+
+                // find same-id 
 
             } catch (error) {
                 console.error('Error updating like status:', error);
@@ -118,62 +122,190 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateLikedSection(podcastId, wasLiked) {
-        const podcastCard = document.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
-        if (!podcastCard) {
+        // update like count
+        updateLikeCount(podcastId, !wasLiked);
+
+        const userCard = userSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        const likesCard = likesSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        const likedCard = likedSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        if (!userCard && !likesCard && !likedCard) {
             return;
         }
-    
+
+        // if unlike
         if (wasLiked) {
             // Remove from liked section
-            const likedCard = likedSection.querySelector(`.podcast-card[podcast-id="${podcastId}"]`);
             if (likedCard) {
                 likedCard.remove();
             }
-        } else {
-            // Add to liked section
-            const clonedCard = podcastCard.cloneNode(true);
-            setupLikeButton(clonedCard.querySelector('.like-button'));
-            likedSection.insertBefore(clonedCard, likedSection.firstChild);
-        }
-        updateLikeCount(podcastId, !wasLiked);
 
+            // Replace from userSection and likesSection the card with same id if exists with clone card
+            if (userCard) {
+                // userCard.replaceWith(cloneCard);
+                userCard.querySelector('.like-button').classList.remove('liked');
+            }
+            if (likesCard) {
+                // likesCard.replaceWith(cloneCard);
+                likesCard.querySelector('.like-button').classList.remove('liked');
+            }
+
+
+            // if like
+        } else {
+            // clone any of the cards
+            let originalCard = userCard || likesCard || likedCard;
+            let cloneCard = null;
+
+            if (originalCard) {
+                cloneCard = originalCard.cloneNode(true);
+                cloneCard.querySelector('.like-button').classList.add('liked');
+                addLikeButtonListener(cloneCard.querySelector('.like-button'));
+                // setupLikeButton(cloneCard.querySelector('.like-button'));
+            } else {
+                console.error('Error: No se encontró ninguna tarjeta para clonar.');
+            }
+            if (!cloneCard) {
+                return;
+            }
+
+            // Add 'liked' class to like button
+
+
+            if (userCard) {
+                // replace with clone card
+                userCard.querySelector('.like-button').classList.add('liked');
+            }
+            if (likesCard) {
+                likesCard.querySelector('.like-button').classList.add('liked');
+            }
+            // setupLikeButton(clonedCard.querySelector('.like-button'));
+
+            if (cloneCard) {
+                likedSection.insertBefore(cloneCard, likedSection.firstChild);
+            } else {
+                console.error(`Error: No element found with podcastId ${podcastId}`);
+            }
+        }
     }
-    
+
+    function addLikeButtonListener(button) {
+        button.addEventListener('click', async () => {
+            const podcastId = button.dataset.podcastId;
+            const isLiked = button.classList.contains('liked');
+
+            try {
+
+                // Toggle liked stateº
+                button.classList.toggle('liked');
+
+                // Add animation class
+                button.classList.add(isLiked ? 'unliking' : 'liking');
+
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    button.classList.remove('liking', 'unliking');
+                }, 500);
+
+                // Update userInfo.liked_podcasts
+                if (isLiked) {
+                    userInfo.liked_podcasts = userInfo.liked_podcasts.filter(id => id !== podcastId);
+                } else {
+
+                    userInfo.liked_podcasts.push(podcastId);
+                }
+
+                // Update the liked section
+                updateLikedSection(podcastId, isLiked);
+
+                // find same-id 
+
+            } catch (error) {
+                console.error('Error updating like status:', error);
+                // Optionally, show an error message to the user
+            }
+
+            const response = await fetch(`/${isLiked ? 'unlike' : 'like'}_podcast/${podcastId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include any necessary authentication headers
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update like status');
+            }
+        });
+    }
+
+
     function setupLikeButton(button) {
         button.addEventListener('click', async () => {
             const podcastId = button.dataset.podcastId;
             const isLiked = button.classList.contains('liked');
-    
+
             // Toggle liked state
             button.classList.toggle('liked');
-    
+
             // Add animation class
             button.classList.add(isLiked ? 'unliking' : 'liking');
-    
+
             // Update like count
             updateLikeCount(podcastId, !isLiked);
-    
+
             // Remove animation class after animation completes
             setTimeout(() => {
                 button.classList.remove('liking', 'unliking');
             }, 500);
         });
     }
-    
+
     function updateLikeCount(podcastId, isLiked) {
-        const podcastCard = document.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
-        const likeCountElement = podcastCard.querySelector('.like-count');
-        let likeCount = parseInt(likeCountElement.textContent, 10);
-    
-        if (isLiked) {
-            likeCount++;
-        } else {
-            likeCount--;
+        const userCard = userSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        if (userCard) {
+            const likeCountElement = userCard.querySelector('.like-count');
+            let likeCount = parseInt(likeCountElement.textContent, 10);
+
+            if (isLiked) {
+                likeCount++;
+            } else {
+                likeCount--;
+            }
+
+            likeCountElement.textContent = likeCount;
         }
-    
-        likeCountElement.textContent = likeCount;
+
+        // Update the liked section
+        const likedCard = likedSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        if (likedCard) {
+            const likeCountElement = likedCard.querySelector('.like-count');
+            let likeCount = parseInt(likeCountElement.textContent, 10);
+
+            if (isLiked) {
+                likeCount++;
+            } else {
+                likeCount--;
+            }
+
+            likeCountElement.textContent = likeCount;
+        }
+
+        // Update the likes section
+        const likesCard = likesSection.querySelector(`.podcast-card[data-podcast-id="${podcastId}"]`);
+        if (likesCard) {
+            const likeCountElement = likesCard.querySelector('.like-count');
+            let likeCount = parseInt(likeCountElement.textContent, 10);
+
+            if (isLiked) {
+                likeCount++;
+            } else {
+                likeCount--;
+            }
+
+            likeCountElement.textContent = likeCount;
+        }
     }
-    
+
 
 
     console.log('loaded');
@@ -251,13 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const podcastName = document.getElementById('podcast-name').value;
         const podcastSubject = document.getElementById('podcast-subject').value;
 
-        // Close the menu
         generatePodcastMenu.classList.remove('active');
-
-        // Create and add a loading podcast card
-        const loadingCard = createLoadingPodcastCard(podcastName);
-        const podcastGrid = document.querySelector('.podcast-grid');
-        podcastGrid.appendChild(loadingCard);
 
         try {
             const response = await fetch('/generate-podcast', {
@@ -270,37 +396,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const newPodcast = await response.json();
-                updatePodcastCard(loadingCard, newPodcast);
+                const loadingCard = createLoadingPodcastCard(newPodcast);
+                const podcastGrid = document.querySelector('.podcast-grid');
+                podcastGrid.insertBefore(loadingCard, podcastGrid.firstChild);
+
+                // Start polling for status
+                pollPodcastStatus(loadingCard, newPodcast.id);
             } else {
                 showErrorNotification('Failed to generate podcast');
-                loadingCard.remove();
             }
         } catch (error) {
             showErrorNotification('Error generating podcast');
-            loadingCard.remove();
         }
     });
 
-    function createLoadingPodcastCard(podcastName) {
+
+    function createLoadingPodcastCard(podcast) {
         const card = document.createElement('div');
         card.className = 'podcast-card loading';
+        card.setAttribute('data-podcast-id', podcast.id);
         card.innerHTML = `
             <div class="podcast-image-container">
-                <img src="static/images/placeholder.png" alt="${podcastName} cover image" class="podcast-image">
-                <div class="podcast-overlay">
-                    <button class="play-button" disabled>▶</button>
-                </div>
+                <img src="${podcast.image ? podcast.image : 'static/images/placeholder.png'}"
+                    alt="${podcast.name} cover image" class="podcast-image">
+                <div class="loading-spinner"></div>
             </div>
-            <h3 class="podcast-title">${podcastName}</h3>
+            <h3 class="podcast-title">${podcast.name}</h3>
+            <p class="podcast-author">${podcast.author}</p>
+            <button class="like-button ${podcast.liked ? 'liked' : ''}"
+                data-podcast-id="${podcast.id}">
+                <span class="like-count">${podcast.likes}</span>
+                <i class="fas fa-heart"></i>
+                <div class="like-ripple"></div>
+            </button>
         `;
         return card;
     }
 
     function updatePodcastCard(card, podcast) {
+        if (!podcast) return;
+
         card.dataset.podcastId = podcast.id;
         card.querySelector('img').src = podcast.image;
         card.querySelector('.podcast-title').textContent = podcast.name;
-        card.querySelector('.play-button').disabled = false;
+        card.querySelector('.podcast-author').textContent = podcast.author;
+        card.querySelector('.like-count').textContent = podcast.likes;
+
         card.classList.remove('loading');
 
         // Add event listeners for hover and play button
@@ -329,7 +470,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /* auth transition */
+    const contentWrapper = document.querySelector('.content-wrapper');
+    const pageTransition = document.querySelector('.page-transition');
+
+    function endPageTransition() {
+        // Ensure the transition is visible
+        document.body.classList.add('transition-active');
+        pageTransition.style.opacity = '1';
+        contentWrapper.style.transform = 'scale(0.9)';
+        contentWrapper.style.opacity = '0';
+
+        // Delay to allow the page content to load
+        setTimeout(() => {
+            // Fade out the transition
+            pageTransition.style.opacity = '0';
+
+            // Fade in and scale up the content
+            contentWrapper.style.transform = 'scale(1)';
+            contentWrapper.style.opacity = '1';
+
+            // Remove the transition class after animation completes
+            setTimeout(() => {
+                document.body.classList.remove('transition-active');
+                pageTransition.innerHTML = '';
+            }, 500); // This should match the transition duration in CSS
+        }, 500); // Adjust this delay as needed
+    }
+
+    // Check if we're coming from a login/signup page
+    const pageTransitionCookie = document.cookie.split('; ').find(row => row.startsWith('page_transition='));
+    if (pageTransitionCookie) {
+        // Remove the cookie
+        document.cookie = 'page_transition=; max-age=0; path=/;';
+        endPageTransition();
+    } else {
+        // If not coming from login/signup, ensure no transition is visible
+        document.body.classList.remove('transition-active');
+        pageTransition.style.opacity = '0';
+        contentWrapper.style.transform = 'scale(1)';
+        contentWrapper.style.opacity = '1';
+    }
+
+    async function checkPodcastStatus(podcastId) {
+        try {
+            const response = await fetch(`/check-podcast-status/${podcastId}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.status;
+            }
+        } catch (error) {
+            console.error('Error checking podcast status:', error);
+        }
+        return null;
+    }
+
+    function pollPodcastStatus(card, podcastId) {
+        const interval = setInterval(async () => {
+            const status = await checkPodcastStatus(podcastId);
+            if (status === 'ready') {
+                clearInterval(interval);
+                updatePodcastCard(card, await fetchPodcastDetails(podcastId));
+            }
+        }, 5000); // Check every 5 seconds
+    }
+
+    async function fetchPodcastDetails(podcastId) {
+        try {
+            const response = await fetch(`/get-podcast-details/${podcastId}`);
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Error fetching podcast details:', error);
+        }
+        return null;
+    }
+
 });
+
 
 
 // Add these keyframe animations to your CSS file
