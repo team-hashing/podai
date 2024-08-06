@@ -117,7 +117,9 @@ class PodcastGenerator:
     def generate_detailed_section(self, subject: str, section_title: str) -> Optional[Dict]:
         section_prompt = f"""
         Based on the subject "{subject}" and the section title "{section_title}", write a detailed section for a podcast.
-        Alternate between Male Host and Female Host. Provide multiple viewpoints, subpoints, and examples. Be simple with your sentences, be aware this will be spoken and it has to sound natural.
+        Alternate between Male Host and Female Host. Provide multiple viewpoints, subpoints, and examples. Be simple with your sentences, 
+        be aware this will be spoken and it has to sound natural. Male Host has a host role where he usually drives the conversation, while
+        Female Host explains and adds more details, but this can be flexible. Conversation needs to be engaging and informative, but not too formal, and natural.
         """
 
         for i in range(3):
@@ -157,6 +159,7 @@ class PodcastGenerator:
             section_number = 1
 
 
+            """ INTRODUCTION IS AGAIN DONE AS SECTION
             while attempts < max_attempts:
                 introduction = self.generate_script_part(intro_prompt)
                 if introduction:
@@ -170,7 +173,9 @@ class PodcastGenerator:
 
             introduction = {f"{section_number:03d}_{list(introduction.keys())[0]}": list(introduction.values())[0]}
             full_script.update(introduction)
+            
             section_number += 1
+            """
 
             for i, section_title in enumerate(sections, 1):
                 logger.info(f"Generating section {i}...")
@@ -193,6 +198,8 @@ class PodcastGenerator:
                 full_script.update(section_content)
                 section_number += 1
 
+
+            """
             logger.info("Generating conclusion...")
             conclusion_prompt = self.create_conclusion_prompt(subject, sections)
 
@@ -213,6 +220,7 @@ class PodcastGenerator:
 
             conclusion = {f"{section_number:03d}_{list(conclusion.keys())[0]}": list(conclusion.values())[0]}
             full_script.update(conclusion)
+            """
 
 
             return full_script

@@ -395,7 +395,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                const newPodcast = await response.json();
+                let newPodcast = await response.json();
+                newPodcast.likes = 0;
+                newPodcast.name = podcastName;
+                newPodcast.author = userInfo.username;
                 const loadingCard = createLoadingPodcastCard(newPodcast);
                 const podcastGrid = document.querySelector('.podcast-grid');
                 podcastGrid.insertBefore(loadingCard, podcastGrid.firstChild);
@@ -403,7 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Start polling for status
                 pollPodcastStatus(loadingCard, newPodcast.id);
             } else {
-                showErrorNotification('Failed to generate podcast');
+                const errorDetail = await response.json();
+                if (errorDetail.detail === "Not enough tokens") {
+                    showErrorNotification('Not enough tokens to generate podcast');
+                } else {
+                    showErrorNotification('Failed to generate podcast');
+                }
             }
         } catch (error) {
             showErrorNotification('Error generating podcast');
@@ -513,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function checkPodcastStatus(podcastId) {
+        if (!podcastId || podcastId=="undefined") return null;
         try {
             const response = await fetch(`/check-podcast-status/${podcastId}`);
             if (response.ok) {

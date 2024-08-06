@@ -75,3 +75,8 @@ class FirebaseStorage:
         for i, image in enumerate(images):
             image.save("output_{}.png".format(i))
         """
+
+    def set_error(self, user_id: str, podcast_id: str):
+        """Set podcast status to error"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc_ref.update({'status': 'error'})

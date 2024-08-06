@@ -306,6 +306,11 @@ class FirebaseStorage:
         if doc.exists:
             return doc.to_dict()['status']
         return None
+    
+    def set_error(self, user_id: str, podcast_id: str):
+        """Set podcast status to error"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc_ref.update({'status': 'error'})
 
 
 # Create a global instance of FirebaseStorage

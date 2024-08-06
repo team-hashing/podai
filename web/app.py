@@ -105,16 +105,21 @@ async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
             podcasts_data = response.json()
             total_pages = 1
 
+        if data["name"] == "":
+            image_name = "Unknown"
+        else:
+            image_name = data["name"]
+
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                image=f'https://picsum.photos/seed/{image_name}/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
             )
-            for data in podcasts_data
+            for data in podcasts_data if data['status'] != 'error'
         ]
 
         # get images for each podcast
@@ -139,11 +144,17 @@ async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
             podcasts_data = response.json()
             total_pages = 1
 
+        if data["name"] == "":
+            image_name = "Unknown"
+        else:
+            image_name = data["name"]
+
+        
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                image=f'https://picsum.photos/seed/{image_name}/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
@@ -172,11 +183,16 @@ async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
             podcasts_data = response.json()
             total_pages = 1
 
+        if data["name"] == "":
+            image_name = "Unknown"
+        else:
+            image_name = data["name"]
+
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{data["name"]}/200',
+                image=f'https://picsum.photos/seed/{image_name}/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
@@ -331,7 +347,7 @@ async def generate_podcast(request: Request, podcast_request: PodcastGenerationR
         response = await client.post(f'{API_URL}/api/generate_podcast', json=payload)
         if response.status_code != 200:
             raise HTTPException(
-                status_code=response.status_code, detail=response.text)
+                status_code=response.status_code, detail=response.detail)
         podcast_data = response.json()
 
     return {"message": "Podcast generated successfully"}

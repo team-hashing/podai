@@ -7,6 +7,7 @@ from pydub import AudioSegment
 from typing import List, Dict
 import logging
 from io import BytesIO
+import random
 
 from src.models import Podcast
 from src.storage import FirebaseStorage
@@ -61,12 +62,26 @@ def get_audio_files(user_id: str, podcast_id: str) -> List[BytesIO]:
 
 def concatenate_audio_files(files: List[BytesIO]) -> AudioSegment:
     """
-    Concatenate audio files into a single AudioSegment.
+    Concatenate audio files into a single AudioSegment, starting with a random intro melody.
 
     :param files: The list of BytesIO objects to concatenate.
     :return: The concatenated AudioSegment.
     """
     audio_files = []
+
+    # Select a random intro melody from the 'audios' folder
+    intro_folder = 'audios'
+    intro_files = [f for f in os.listdir(intro_folder) if f.endswith('.wav')]
+    if intro_files:
+        intro_file_path = os.path.join(intro_folder, random.choice(intro_files))
+        try:
+            logger.debug(f"Loading intro melody from {intro_file_path}")
+            intro_audio = AudioSegment.from_wav(intro_file_path)
+            intro_audio = intro_audio.fade_out(duration=2000)  # Fade out in the last 2 seconds
+            audio_files.append(intro_audio)
+            logger.info(f"Successfully loaded intro melody")
+        except Exception as e:
+            logger.error(f"Error loading intro melody: {e}")
 
     for file in files:
         try:
@@ -225,6 +240,13 @@ def generate_podcast(podcast: Podcast) -> None:
         if script is None:
             logger.error(f"Script not found: {podcast.podcast_id}")
             return
+        
+        logger.debug(f"AAAAAAAAAAAAAAAAAAAAAAAa {script}")
+        # order the script by section names
+        script = json.loads(script)
+        script = {k: script[k] for k in sorted(script.keys())}
+        logger.debug(f"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: {script}")
+
 
         logger.info(f"Successfully loaded script {podcast.podcast_name}")
 

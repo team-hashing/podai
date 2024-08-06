@@ -76,6 +76,13 @@ async def generate_script(
 
         # Generate image
         image_data = generate_image(request.subject)
+        if not image_data:
+            logger.error("Image generation failed, using default image")
+            # use image in static/images/placeholder.png
+            image_data = open("static/images/placeholder.png", "rb").read()
+            if not image_data:
+                logger.error("Default image not found")
+
         await firebase_storage.save_image(request.user_id, podcast_id, image_data)
 
         logger.info(f"Script generated successfully. ID: {podcast_id}")
@@ -84,10 +91,17 @@ async def generate_script(
     # Error handling
     except ValueError as ve:
         logger.error(f"Script generation failed: {str(ve)}")
+        await firebase_storage.set_error(request.user_id, podcast_id)
         raise HTTPException(status_code=500, detail=str(ve))
+
+    except FileNotFoundError as fnfe:
+        logger.error(f"File not found: {str(fnfe)}")
+        await firebase_storage.set_error(request.user_id, podcast_id)
+        raise HTTPException(status_code=500, detail="File not found")
 
     except Exception as e:
         logger.exception("An unexpected error occurred during script generation")
+        await firebase_storage.set_error(request.user_id, podcast_id)
         raise HTTPException(status_code=500, detail="An unexpected error occurred during script generation")
 
 
