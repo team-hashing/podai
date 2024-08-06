@@ -11,6 +11,7 @@ script.json
 tts/data/*
 tts/podcasts/*
 tts/voices
+!tts/audios/*.wav
 
 # For test
 !tts/data/123/whales.json
