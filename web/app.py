@@ -17,6 +17,7 @@ import logging
 from src.log import setup_logger
 from typing import Optional
 from src.auth import router as auth_router
+import aiohttp
 
 logger = setup_logger("uvicorn")
 
@@ -90,7 +91,14 @@ async def get_user_info(user_id: str):
         user_info = response.json()
         
         return user_info
-    
+
+async def is_image_url(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.head(url) as response:
+            content_type = response.headers.get('Content-Type', '')
+            return content_type.startswith('image/')
+
+
 async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
     async with httpx.AsyncClient() as client:
 
@@ -126,10 +134,15 @@ async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
             response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
-                podcast.image = data.get("image_url")
+                image_url = data.get("image_url")
+                if await is_image_url(image_url):
+                    podcast.image = image_url
+                else:
+                    podcast.image = 'static/images/placeholder2.png'
+
             else:
-                podcast.image = f'https://picsum.photos/seed/podcast/200'
-        
+                podcast.image = 'static/images/placeholder2.png'
+
         return podcasts, total_pages
 
 async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
@@ -164,10 +177,15 @@ async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
             response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
-                podcast.image = data.get("image_url")
+                image_url = data.get("image_url")
+                if await is_image_url(image_url):
+                    podcast.image = image_url
+                else:
+                    podcast.image = 'static/images/placeholder2.png'
+
             else:
-                podcast.image = f'https://picsum.photos/seed/podcast/200'
-        
+                podcast.image = 'static/images/placeholder2.png'
+
         return podcasts, total_pages
 
 async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
@@ -202,10 +220,15 @@ async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
             response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast.id})
             if response.status_code != 404:
                 data = response.json()
-                podcast.image = data.get("image_url")
+                image_url = data.get("image_url")
+                if await is_image_url(image_url):
+                    podcast.image = image_url
+                else:
+                    podcast.image = 'static/images/placeholder2.png'
+
             else:
-                podcast.image = f'https://picsum.photos/seed/podcast/200'
-        
+                podcast.image = 'static/images/placeholder2.png'
+
         return podcasts, total_pages
 
 

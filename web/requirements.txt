@@ -36,6 +36,8 @@ websockets==12.0
 colorlog
 Pillow
 
+aiohttp
+
 pyrebase4 
 python-jose[cryptography] 
 python-multipart
