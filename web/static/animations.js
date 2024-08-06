@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.setAttribute('data-podcast-id', podcast.id);
         card.innerHTML = `
             <div class="podcast-image-container">
-                <img src="${podcast.image ? podcast.image : 'static/images/placeholder.png'}"
+                <img src="${podcast.image ? podcast.image : 'static/images/placeholder2.png'}"
                     alt="${podcast.name} cover image" class="podcast-image">
                 <div class="loading-spinner"></div>
             </div>

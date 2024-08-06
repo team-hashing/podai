@@ -127,6 +127,8 @@ async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+            else:
+                podcast.image = f'https://picsum.photos/seed/podcast/200'
         
         return podcasts, total_pages
 
@@ -163,6 +165,8 @@ async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+            else:
+                podcast.image = f'https://picsum.photos/seed/podcast/200'
         
         return podcasts, total_pages
 
