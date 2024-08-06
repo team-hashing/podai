@@ -36,8 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
         }, index * 100);
-        index++;
 
+
+        // If card has class loading, start polling for status
+        if (card.classList.contains('loading')) {
+            const podcastId = card.dataset.podcastId;
+            pollPodcastStatus(card, podcastId);
+        }
+
+        index++;
     });
 
     const userSection = document.querySelector('#featured .podcast-grid');
@@ -441,6 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
+
     function updatePodcastCard(card, podcast) {
         if (!podcast) return;
 
@@ -521,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function checkPodcastStatus(podcastId) {
-        if (!podcastId || podcastId=="undefined") return null;
+        if (!podcastId || podcastId == "undefined") return null;
         try {
             const response = await fetch(`/check-podcast-status/${podcastId}`);
             if (response.ok) {
