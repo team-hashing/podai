@@ -8,6 +8,7 @@ import firebase_admin
 from firebase_admin import credentials, storage, firestore
 from google.cloud.exceptions import NotFound
 from src.log import setup_logger
+import math
 
 logger = setup_logger("uvicorn")
 
@@ -140,7 +141,8 @@ class FirebaseStorage:
             podcast['username'] = user_ids_to_usernames[pod_user_id]
             podcasts.append(podcast)
 
-        total_pages = len(podcasts) // per_page
+        total_pages = math.ceil(len(podcasts) / per_page)
+
         if page != 0:
             start = (page - 1) * per_page
             end = start + per_page
@@ -163,7 +165,7 @@ class FirebaseStorage:
                 user_ids_to_usernames[pod_user_id] = self.get_username_from_id(pod_user_id)
             podcast['username'] = user_ids_to_usernames[pod_user_id]
             podcasts.append(podcast)
-        total_pages = len(podcasts) // per_page
+        total_pages = math.ceil(len(podcasts) / per_page)
         
         if page != 0:
             start = (page - 1) * per_page
@@ -259,7 +261,7 @@ class FirebaseStorage:
             podcast['username'] = user_ids_to_usernames[podcast['user_id']]
             podcasts.append(podcast)
         
-        total_pages = len(podcasts) // per_page
+        total_pages = math.ceil(len(podcasts) / per_page)
         if page != 0:
             start = (page - 1) * per_page
             end = start + per_page

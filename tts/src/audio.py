@@ -241,12 +241,8 @@ def generate_podcast(podcast: Podcast) -> None:
             logger.error(f"Script not found: {podcast.podcast_id}")
             return
         
-        logger.debug(f"AAAAAAAAAAAAAAAAAAAAAAAa {script}")
         # order the script by section names
-        script = json.loads(script)
         script = {k: script[k] for k in sorted(script.keys())}
-        logger.debug(f"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: {script}")
-
 
         logger.info(f"Successfully loaded script {podcast.podcast_name}")
 
