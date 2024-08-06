@@ -106,17 +106,13 @@ async def get_user_podcasts(user_id: str, page: int = 0, per_page: int = 5):
             podcasts_data = response.json()
             total_pages = 1
         
-        for data in podcasts_data:
-            if not "name" in data or data["name"] == "":
-                image_name = "Unknown"
-            else:
-                image_name = data["name"]
+
 
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{image_name}/200',
+                image=f'https://picsum.photos/seed/podcast/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
@@ -147,18 +143,14 @@ async def get_podcasts_by_likes(user_id: str, page: int = 0, per_page: int = 5):
             podcasts_data = response.json()
             total_pages = 1
 
-        for data in podcasts_data:
-            if not "name" in data or data["name"] == "":
-                image_name = "Unknown"
-            else:
-                image_name = data["name"]
+
 
         
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{image_name}/200',
+                image=f'https://picsum.photos/seed/podcast/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
@@ -187,17 +179,13 @@ async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
             podcasts_data = response.json()
             total_pages = 1
 
-        for data in podcasts_data:
-            if not "name" in data or data["name"] == "":
-                image_name = "Unknown"
-            else:
-                image_name = data["name"]
+
         
         podcasts = [
             Podcast(
                 id=data['id'],
                 name=data['name'],
-                image=f'https://picsum.photos/seed/{image_name}/200',
+                image=f'https://picsum.photos/seed/podcast/200',
                 status=data.get('status', 'ready'),
                 author=data.get('username', 'Unknown'),
                 likes=data.get('likes', 0)
@@ -211,6 +199,8 @@ async def get_liked_podcasts(user_id: str, page: int = 0, per_page: int = 12):
             if response.status_code != 404:
                 data = response.json()
                 podcast.image = data.get("image_url")
+            else:
+                podcast.image = f'https://picsum.photos/seed/podcast/200'
         
         return podcasts, total_pages
 
