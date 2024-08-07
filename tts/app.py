@@ -31,11 +31,13 @@ async def read_audio(podcast: Podcast):
         generate_podcast(podcast)
     except Exception as e:
         logger.error(f"Error generating podcast: {e}")
+        firebase_storage.set_error(podcast.user_id, podcast.podcast_id)
         raise HTTPException(status_code=500, detail="Error generating podcast")
 
     audio = firebase_storage.get_audio(podcast.user_id, podcast.podcast_id)
     if audio is None:
         logger.error(f"Podcast not found: {podcast.podcast_id}")
+        firebase_storage.set_error(podcast.user_id, podcast.podcast_id)
         raise HTTPException(status_code=404, detail="Podcast not found")
 
     return {"response_code": 200, "message": "Podcast generated successfully", "podcast": podcast}
@@ -46,5 +48,6 @@ def read_audio(user_id: str, podcast_id: str):
     audio = firebase_storage.get_audio(user_id, podcast_id)
     if audio is None:
         logger.error(f"Podcast not found: {podcast_id}")
+        firebase_storage.set_error(user_id, podcast_id)
         raise HTTPException(status_code=404, detail="Podcast not found")
     return Response(content=audio, media_type="audio/wav")

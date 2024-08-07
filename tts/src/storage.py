@@ -87,3 +87,8 @@ class FirebaseStorage:
             file_name = blob.name.split('/')[-1]
             if file_name.endswith('.onnx') or file_name.endswith('.json'):
                 blob.download_to_filename(voices_folder + file_name)
+
+    def set_error(self, user_id: str, podcast_id: str):
+        """Set podcast status to error"""
+        doc_ref = self.db.collection('podcasts').document(podcast_id)
+        doc_ref.update({'status': 'error'})
