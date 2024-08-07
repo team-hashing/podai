@@ -368,8 +368,12 @@ async def generate_podcast(request: Request, podcast_request: PodcastGenerationR
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(f'{API_URL}/api/generate_podcast', json=payload)
         if response.status_code != 200:
+            # dict from response.text
+            r = response.json()
+            detail = r.get('detail', response.text)
+
             raise HTTPException(
-                status_code=response.status_code, detail=response.detail)
+                status_code=response.status_code, detail=detail)
         podcast_data = response.json()
 
     return {"message": "Podcast generated successfully"}
