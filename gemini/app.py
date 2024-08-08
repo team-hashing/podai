@@ -1,4 +1,3 @@
-import logging
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -10,6 +9,7 @@ from src.gemini import PodcastGenerator
 from src.storage import FirebaseStorage
 from src.script_processor import standardize_script_format
 from src.image_generation import generate_image
+from src.log import setup_logger
 
 # Configuration
 class Settings(BaseSettings):
@@ -23,8 +23,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Logging setup
-logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
-logger = logging.getLogger(__name__)
+logger = setup_logger("uvicorn")
 
 # Models
 class PodcastRequest(BaseModel):

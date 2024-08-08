@@ -5,14 +5,14 @@ from typing import Dict, List, Optional
 import firebase_admin
 from firebase_admin import credentials, storage, firestore
 from google.cloud.exceptions import NotFound
-import logging
 from PIL import Image as PILImage
 from io import BytesIO
 from vertexai.preview.vision_models import GeneratedImage
 import tempfile
+from src.log import setup_logger
 
 
-logger = logging.getLogger(__name__)
+logger = setup_logger("uvicorn")
 FIREBASE_KEY = os.environ.get('FIREBASE_KEY')
 STORAGE_BUCKET = os.getenv('FIREBASE_STORAGE_BUCKET')
 

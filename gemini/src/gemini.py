@@ -1,6 +1,6 @@
 import argparse
 import json
-import logging
+from src.log import setup_logger
 import time
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel
@@ -36,9 +36,7 @@ SAFETY_SETTINGS = [
     SafetySetting(category=HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE),
 ]
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = setup_logger("uvicorn")
 
 class AIModelError(Exception):
     """Custom exception for AI model related errors."""

@@ -220,10 +220,11 @@ class FirebaseStorage:
         doc = doc_ref.get()
         if doc.exists:
             user = doc.to_dict()
+            if 'liked_podcasts' not in user:
+                user['liked_podcasts'] = []
             if podcast_id not in user['liked_podcasts']:
                 user['liked_podcasts'].append(podcast_id)
                 doc_ref.update(user)
-
 
     def unlike_podcast(self, user_id: str, podcast_id: str):
         """Unlike a podcast"""
@@ -243,10 +244,12 @@ class FirebaseStorage:
         doc = doc_ref.get()
         if doc.exists:
             user = doc.to_dict()
+            if 'liked_podcasts' not in user:
+                user['liked_podcasts'] = []
             if podcast_id in user['liked_podcasts']:
                 user['liked_podcasts'].remove(podcast_id)
                 doc_ref.update(user)
-    
+        
     def get_liked_podcasts(self, user_id: str, page: int = 0, per_page: int = 10) -> List[Dict[str, str]]:
         """Get all podcasts liked by a user"""
         docs = self.db.collection('podcasts').where('liked_by', 'array_contains', user_id).stream()

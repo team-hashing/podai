@@ -543,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pollPodcastStatus(card, podcastId) {
+        return
         const interval = setInterval(async () => {
             const status = await checkPodcastStatus(podcastId);
             if (status === 'ready') {
