@@ -22,7 +22,11 @@
 
 PodAI is not just another podcast creation tool; it's a symphony of AI-driven services working in harmony to revolutionize the way we create, produce, and experience podcasts. Imagine a world where your ideas transform into captivating audio content with just a few clicks. That's the power of PodAI at your fingertips!
 
+### Check out our live demo [here](https://team-hashing.github.io/podai_web_host/)
+
+### Watch the YouTube video [here](https://youtu.be/FgNmPAK_6pg)
 ---
+
 
 ## 🏗️ Architecture: A Masterpiece of Microservices
 
