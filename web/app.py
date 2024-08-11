@@ -339,7 +339,20 @@ async def get_podcast_details(request: Request, podcast_id: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(f'{API_URL}/api/get_podcast_info', json={"user_id": user_id, "podcast_id": podcast_id})
         response.raise_for_status()
-        return response.json()
+    
+        podcast = response.json()
+        podcast["image"] = 'static/images/placeholder2.png'
+
+        image_response = await client.post(f'{API_URL}/api/get_image', json={"user_id": user_id, "podcast_id": podcast_id})
+        if image_response.status_code != 404:
+            data = image_response.json()
+            image_url = data.get("image_url")
+            if await is_image_url(image_url):
+                podcast["image"] = image_url
+            else:
+                podcast["image"] = 'static/images/placeholder2.png'
+    
+    return podcast
     
 
 class PodcastGenerationRequest(BaseModel):

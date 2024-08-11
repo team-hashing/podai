@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/check-podcast-status/${podcastId}`);
             if (response.ok) {
                 const data = await response.json();
-                return data.status;
+                return data;
             }
         } catch (error) {
             console.error('Error checking podcast status:', error);
@@ -543,7 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pollPodcastStatus(card, podcastId) {
-        return
         const interval = setInterval(async () => {
             const status = await checkPodcastStatus(podcastId);
             if (status === 'ready') {
