@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(interval);
                 updatePodcastCard(card, await fetchPodcastDetails(podcastId));
             }
-        }, 5000); // Check every 5 seconds
+        }, 30000); // Check every 5 seconds
     }
 
     async function fetchPodcastDetails(podcastId) {

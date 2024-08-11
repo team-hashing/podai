@@ -1,0 +1,71 @@
+# General
+.DS_Store
+*.swp
+*.log
+*.class
+.history
+.svn/
+*.pyc
+.buildlog/
+.migrate_working_dir/
+.atom/
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+flutter/ephemeral/
+
+# Android specific
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/GeneratedPluginRegistrant.java
+**/android/key.properties
+**/*.keystore
+**/*.jks
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# iOS specific
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/DerivedData/
+**/ios/.symlinks/
+**/ios/xcuserdata/
+**/ios/Pods/
+Runner/GeneratedPluginRegistrant.*
+
+# macOS specific (remove if not targeting macOS)
+#macos/
+
+# Linux specific (remove if not targeting Linux)
+#linux/
+
+# Windows specific (remove if not targeting Windows)
+#windows/
+
+# Web specific (remove if not targeting Web)
+#web/
+
+# Symbolication & Obfuscation related
+app.*.symbols
+app.*.map.json
