@@ -90,6 +90,11 @@ PodAI requires two key configuration files to unlock its full potential:
 
 ⚠️ **Important**: Place these files in the appropriate locations within the project structure. Without them, PodAI's wings will be clipped!
 
+
+## Essential for mobile
+
+1. You will need flutter and android studio, and inside the /mobile folder, it is a normal flutter project. Just add the file "firebase.json" for the credentials in the /mobile folder, and change the ip of mobile/lib/constants.dart to the api service "apip", ran with docker in the previous part (by default port 8000).
+
 ### Launch Sequence
 
 1. Clone this repository to your local machine
