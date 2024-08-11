@@ -12,34 +12,15 @@ import logging
 from colorama import Fore, Style
 from src.storage import firebase_storage
 import asyncio
+from src.log import setup_logger
 
 app = FastAPI()
 
 # Global variables
 Env = "local"  # Default environment
 
-# Logging
-class ColorLogger:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(handler)
 
-    def debug(self, msg, *args, **kwargs):
-        self.logger.debug(f"{Fore.CYAN}{msg}{Style.RESET_ALL}", *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        self.logger.info(f"{Fore.BLUE}{msg}{Style.RESET_ALL}", *args, **kwargs)
-
-    def warn(self, msg, *args, **kwargs):
-        self.logger.warning(f"{Fore.YELLOW}{msg}{Style.RESET_ALL}", *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        self.logger.error(f"{Fore.RED}{msg}{Style.RESET_ALL}", *args, **kwargs)
-
-logger = ColorLogger()
+logger = setup_logger("uvicorn")
 
 # Configuration
 class Config(BaseModel):

@@ -71,6 +71,11 @@ Before you dive into the world of PodAI, ensure you have:
 - Docker and Docker Compose installed on your system
 - A Google Cloud Project with Gemini API enabled
 - A Firebase project set up with two collections: `podcasts` and `users`
+- Inside Firebase Storage, ensure the existence of two folders: `podcasts` and `voices`. The `voices` folder must contain two Piper compatible voices with the following files:
+  - `female.json`
+  - `female.onnx`
+  - `male.json`
+  - `male.onnx`
 
 ### Essential Configuration Files
 
